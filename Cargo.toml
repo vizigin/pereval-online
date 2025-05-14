@@ -1,0 +1,32 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4.4"  # Веб-фреймворк
+actix-files = "0.6"  # Раздача статических файлов
+serde = { version = "1.0", features = ["derive"] }  # Сериализация/десериализация
+serde_json = "1.0"  # Работа с JSON
+tokio = { version = "1.0", features = ["full"] }  # Асинхронный runtime
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "bigdecimal", "json"] }  # Работа с базой данных
+dotenv = "0.15"  # Загрузка переменных окружения
+env_logger = "0.10"  # Логирование
+log = "0.4"  # Логирование
+chrono = { version = "0.4", features = ["serde"] }  # Работа с датами и временем
+thiserror = "1.0"  # Улучшенная обработка ошибок
+anyhow = "1.0"  # Упрощенная обработка ошибок
+async-trait = "0.1"  # Асинхронные трейты
+futures = "0.3"  # Утилиты для работы с Future
+tower = "0.4"  # Middleware и сервисы
+tower-http = { version = "0.5", features = ["trace"] }  # HTTP middleware
+derive_more = "0.99"  # Дополнительные derive макросы
+scraper = "0.17"  # Added for HTML parsing
+regex = "1.10"    # Added for text processing
+bigdecimal = "0.4"  # Added for decimal numbers
+num-traits = "0.2"  # For BigDecimal::from_f64
+walkdir = "2.4"  # Для эффективного обхода директорий
+
+[[bin]]
+name = "import_data"
+path = "src/bin/import_data.rs"
