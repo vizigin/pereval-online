@@ -20,8 +20,8 @@
 
 1. Клонируйте репозиторий:
 ```bash
-git clone https://github.com/yourusername/pereval-backend.git
-cd pereval-backend
+git clone https://github.com/vizigin/pereval-online.git
+cd pereval-online/backend
 ```
 
 2. Создайте файл `.env` в корневой директории проекта:
