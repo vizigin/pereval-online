@@ -1,42 +1,41 @@
-use actix_web::{HttpResponse, ResponseError};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use derive_more::Display;
+use serde_json::json;
+use std::fmt;
 use thiserror::Error;
 
-#[derive(Debug, Display, Error)]
+#[derive(Error, Debug)]
 pub enum AppError {
-    #[display(fmt = "Internal server error: {}", _0)]
-    InternalServerError(String),
+    #[error("Database error: {0}")]
+    Database(#[from] sqlx::Error),
 
-    #[display(fmt = "Not found: {}", _0)]
+    #[error("Not found: {0}")]
     NotFound(String),
 
-    #[display(fmt = "Bad request: {}", _0)]
-    BadRequest(String),
+    #[error("Validation error: {0}")]
+    Validation(String),
+
+    #[error("Internal server error: {0}")]
+    Internal(String),
 }
 
-impl ResponseError for AppError {
-    fn error_response(&self) -> HttpResponse {
-        match self {
-            AppError::InternalServerError(_) => {
-                HttpResponse::InternalServerError().json("Internal Server Error")
-            }
-            AppError::NotFound(msg) => HttpResponse::NotFound().json(msg),
-            AppError::BadRequest(msg) => HttpResponse::BadRequest().json(msg),
-        }
-    }
-}
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        let (status, error_message) = match self {
+            AppError::Database(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
+            AppError::Validation(msg) => (StatusCode::BAD_REQUEST, msg),
+            AppError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+        };
 
-impl From<anyhow::Error> for AppError {
-    fn from(error: anyhow::Error) -> Self {
-        AppError::InternalServerError(error.to_string())
-    }
-}
+        let body = Json(json!({
+            "error": error_message
+        }));
 
-impl From<sqlx::Error> for AppError {
-    fn from(error: sqlx::Error) -> Self {
-        match error {
-            sqlx::Error::RowNotFound => AppError::NotFound("Object not found".into()),
-            _ => AppError::InternalServerError(error.to_string()),
-        }
+        (status, body).into_response()
     }
 } 

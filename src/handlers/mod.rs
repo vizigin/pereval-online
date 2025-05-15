@@ -1,96 +1,365 @@
-use actix_web::{web, HttpResponse, Responder};
-use crate::db::repository::ObjectRepository;
-use crate::models::{Object, CreateObject, UpdateObject, SearchParams};
-use crate::models::search::Region;
-use crate::error::AppError;
-use serde_json::json;
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
+use serde::{Deserialize, Serialize};
+use sqlx::{PgPool, types::BigDecimal};
+use tower_http::services::ServeFile;
 
-pub async fn search_objects(
-    repo: web::Data<ObjectRepository>,
-    params: web::Query<SearchParams>,
-) -> impl Responder {
-    match repo.search(params.into_inner()).await {
-        Ok((objects, total)) => HttpResponse::Ok().json(json!({
-            "objects": objects,
-            "total": total
-        })),
-        Err(e) => {
-            eprintln!("Error searching objects: {}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+use crate::{
+    error::AppError,
+    models::{
+        region::{CreateRegion, Region, UpdateRegion},
+        object::{CreateObject, Object, UpdateObject},
+        trip::{CreateTrip, Trip, UpdateTrip},
+        photo::{CreatePhoto, Photo, UpdatePhoto},
+    },
+};
+
+#[derive(Debug, Deserialize)]
+pub struct ListParams {
+    limit: Option<i64>,
+    offset: Option<i64>,
 }
 
-pub async fn create_object(
-    repo: web::Data<ObjectRepository>,
-    object: web::Json<CreateObject>,
-) -> impl Responder {
-    match repo.create(object.into_inner()).await {
-        Ok(object) => HttpResponse::Created().json(object),
-        Err(e) => {
-            eprintln!("Error creating object: {}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Stats {
+    vertices: i64,
+    passes: i64,
+    infrastructure: i64,
+    glaciers: i64,
+    nature: i64,
+    photos: i64,
+    trips: i64,
 }
 
-pub async fn update_object(
-    repo: web::Data<ObjectRepository>,
-    id: web::Path<i32>,
-    object: web::Json<UpdateObject>,
-) -> impl Responder {
-    match repo.update(id.into_inner(), object.into_inner()).await {
-        Ok(Some(object)) => HttpResponse::Ok().json(object),
-        Ok(None) => HttpResponse::NotFound().finish(),
-        Err(e) => {
-            eprintln!("Error updating object: {}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+pub fn router() -> Router<PgPool> {
+    Router::new()
+        .route("/stats", get(get_stats))
+        .route("/regions", get(list_regions).post(create_region))
+        .route("/regions/:id", get(get_region))
+        .route("/objects", get(list_objects).post(create_object))
+        .route("/objects/:id", get(get_object))
+        .route("/trips", get(list_trips).post(create_trip))
+        .route("/trips/:id", get(get_trip))
+        .route("/photos", get(list_photos).post(create_photo))
+        .route("/photos/:id", get(get_photo))
+        .nest_service("/", ServeFile::new("static/index.html"))
 }
 
-pub async fn delete_object(
-    repo: web::Data<ObjectRepository>,
-    id: web::Path<i32>,
-) -> impl Responder {
-    match repo.delete(id.into_inner()).await {
-        Ok(true) => HttpResponse::NoContent().finish(),
-        Ok(false) => HttpResponse::NotFound().finish(),
-        Err(e) => {
-            eprintln!("Error deleting object: {}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+async fn get_stats(
+    State(pool): State<PgPool>,
+) -> Result<impl IntoResponse, AppError> {
+    let stats = sqlx::query!(
+        r#"
+        WITH object_counts AS (
+            SELECT
+                COUNT(*) FILTER (WHERE type = 'Вершина') as vertices,
+                COUNT(*) FILTER (WHERE type = 'Перевал') as passes,
+                COUNT(*) FILTER (WHERE type = 'Инфраструктура') as infrastructure,
+                COUNT(*) FILTER (WHERE type = 'Ледник') as glaciers,
+                COUNT(*) FILTER (WHERE type = 'Озеро') as nature
+            FROM objects
+        ),
+        photo_count AS (
+            SELECT COUNT(*) as count FROM photos
+        ),
+        trip_count AS (
+            SELECT COUNT(*) as count FROM trips
+        )
+        SELECT
+            oc.vertices,
+            oc.passes,
+            oc.infrastructure,
+            oc.glaciers,
+            oc.nature,
+            pc.count as photos,
+            tc.count as trips
+        FROM object_counts oc
+        CROSS JOIN photo_count pc
+        CROSS JOIN trip_count tc
+        "#
+    )
+    .fetch_one(&pool)
+    .await?;
+
+    Ok(Json(Stats {
+        vertices: stats.vertices.unwrap_or(0),
+        passes: stats.passes.unwrap_or(0),
+        infrastructure: stats.infrastructure.unwrap_or(0),
+        glaciers: stats.glaciers.unwrap_or(0),
+        nature: stats.nature.unwrap_or(0),
+        photos: stats.photos.unwrap_or(0),
+        trips: stats.trips.unwrap_or(0),
+    }))
 }
 
-pub async fn get_regions() -> impl Responder {
-    let regions = vec![
-        Region { id: "1".to_string(), name: "Кавказ".to_string(), country: "Россия".to_string() },
-        Region { id: "2".to_string(), name: "Памир и Памиро-Алай".to_string(), country: "Таджикистан".to_string() },
-        Region { id: "3".to_string(), name: "Тянь-Шань".to_string(), country: "Киргизия".to_string() },
-        Region { id: "4".to_string(), name: "Прибайкалье и Забайкалье".to_string(), country: "Россия".to_string() },
-        Region { id: "5".to_string(), name: "Саяны".to_string(), country: "Россия".to_string() },
-        Region { id: "6".to_string(), name: "Алтай".to_string(), country: "Россия".to_string() },
-        Region { id: "7".to_string(), name: "Джунгарский Алатау".to_string(), country: "Казахстан".to_string() },
-        Region { id: "8".to_string(), name: "Крым".to_string(), country: "Россия".to_string() },
-        Region { id: "9".to_string(), name: "Дальний Восток".to_string(), country: "Россия".to_string() },
-        Region { id: "10".to_string(), name: "Гималаи".to_string(), country: "Непал".to_string() },
-        Region { id: "11".to_string(), name: "Альпы".to_string(), country: "Швейцария".to_string() },
-        Region { id: "12".to_string(), name: "Урал".to_string(), country: "Россия".to_string() },
-        Region { id: "13".to_string(), name: "Северо-Запад России".to_string(), country: "Россия".to_string() },
-        Region { id: "14".to_string(), name: "Средняя Сибирь".to_string(), country: "Россия".to_string() },
-        Region { id: "15".to_string(), name: "Тавр".to_string(), country: "Турция".to_string() },
-        Region { id: "16".to_string(), name: "Высокий Атлас".to_string(), country: "Марокко".to_string() },
-        Region { id: "17".to_string(), name: "Карпаты".to_string(), country: "Украина".to_string() },
-        Region { id: "18".to_string(), name: "Северо-Восточная Сибирь".to_string(), country: "Россия".to_string() },
-        Region { id: "19".to_string(), name: "Кузнецкий Алатау".to_string(), country: "Россия".to_string() },
-        Region { id: "20".to_string(), name: "Островная Арктика".to_string(), country: "Россия".to_string() },
-        Region { id: "21".to_string(), name: "Восточно-Европейская равнина".to_string(), country: "Россия".to_string() },
-        Region { id: "22".to_string(), name: "Западная Сибирь".to_string(), country: "Россия".to_string() },
-        Region { id: "23".to_string(), name: "Горы Южной Сибири".to_string(), country: "Россия".to_string() },
-        Region { id: "24".to_string(), name: "Тыва".to_string(), country: "Россия".to_string() },
-        Region { id: "25".to_string(), name: "Средняя Азия".to_string(), country: "Узбекистан".to_string() },
-    ];
+async fn list_regions(
+    State(pool): State<PgPool>,
+    Query(params): Query<ListParams>,
+) -> Result<impl IntoResponse, AppError> {
+    let regions = sqlx::query_as!(
+        Region,
+        r#"
+        SELECT id, name, parent_id, country_code, root_region_id
+        FROM regions
+        ORDER BY name
+        LIMIT $1
+        OFFSET $2
+        "#,
+        params.limit.unwrap_or(100) as i64,
+        params.offset.unwrap_or(0) as i64
+    )
+    .fetch_all(&pool)
+    .await?;
 
-    HttpResponse::Ok().json(regions)
+    Ok(Json(regions))
+}
+
+async fn get_region(
+    State(pool): State<PgPool>,
+    Path(id): Path<i32>,
+) -> Result<impl IntoResponse, AppError> {
+    let region = sqlx::query_as!(
+        Region,
+        r#"
+        SELECT id, name, parent_id, country_code, root_region_id
+        FROM regions
+        WHERE id = $1
+        "#,
+        id
+    )
+    .fetch_optional(&pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound(format!("Region {} not found", id)))?;
+
+    Ok(Json(region))
+}
+
+async fn create_region(
+    State(pool): State<PgPool>,
+    Json(region): Json<CreateRegion>,
+) -> Result<impl IntoResponse, AppError> {
+    let result = sqlx::query_as!(
+        Region,
+        r#"
+        INSERT INTO regions (name, parent_id, country_code, root_region_id)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, name, parent_id, country_code, root_region_id
+        "#,
+        region.name,
+        region.parent_id,
+        region.country_code,
+        region.root_region_id
+    )
+    .fetch_one(&pool)
+    .await?;
+
+    Ok((StatusCode::CREATED, Json(result)))
+}
+
+async fn list_objects(
+    State(pool): State<PgPool>,
+    Query(params): Query<ListParams>,
+) -> Result<impl IntoResponse, AppError> {
+    let objects = sqlx::query_as!(
+        Object,
+        r#"
+        SELECT id, name, type as "type!", region_id, parent_id, height, 
+               latitude, longitude, description
+        FROM objects
+        ORDER BY name
+        LIMIT $1
+        OFFSET $2
+        "#,
+        params.limit.unwrap_or(100) as i64,
+        params.offset.unwrap_or(0) as i64
+    )
+    .fetch_all(&pool)
+    .await?;
+
+    Ok(Json(objects))
+}
+
+async fn get_object(
+    State(pool): State<PgPool>,
+    Path(id): Path<i32>,
+) -> Result<impl IntoResponse, AppError> {
+    let object = sqlx::query_as!(
+        Object,
+        r#"
+        SELECT id, name, type as "type!", region_id, parent_id, height,
+               latitude, longitude, description
+        FROM objects
+        WHERE id = $1
+        "#,
+        id
+    )
+    .fetch_optional(&pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound(format!("Object {} not found", id)))?;
+
+    Ok(Json(object))
+}
+
+async fn create_object(
+    State(pool): State<PgPool>,
+    Json(object): Json<CreateObject>,
+) -> Result<impl IntoResponse, AppError> {
+    let result = sqlx::query_as!(
+        Object,
+        r#"
+        INSERT INTO objects (name, type, region_id, parent_id, height, latitude, longitude, description)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, name, type as "type!", region_id, parent_id, height,
+                  latitude, longitude, description
+        "#,
+        object.name,
+        object.r#type,
+        object.region_id,
+        object.parent_id,
+        object.height,
+        object.latitude,
+        object.longitude,
+        object.description
+    )
+    .fetch_one(&pool)
+    .await?;
+
+    Ok((StatusCode::CREATED, Json(result)))
+}
+
+async fn list_trips(
+    State(pool): State<PgPool>,
+    Query(params): Query<ListParams>,
+) -> Result<impl IntoResponse, AppError> {
+    let trips = sqlx::query_as!(
+        Trip,
+        r#"
+        SELECT id, name, type as "type!", region_id, start_date, end_date, description
+        FROM trips
+        ORDER BY start_date DESC NULLS LAST
+        LIMIT $1
+        OFFSET $2
+        "#,
+        params.limit.unwrap_or(100) as i64,
+        params.offset.unwrap_or(0) as i64
+    )
+    .fetch_all(&pool)
+    .await?;
+
+    Ok(Json(trips))
+}
+
+async fn get_trip(
+    State(pool): State<PgPool>,
+    Path(id): Path<i32>,
+) -> Result<impl IntoResponse, AppError> {
+    let trip = sqlx::query_as!(
+        Trip,
+        r#"
+        SELECT id, name, type as "type!", region_id, start_date, end_date, description
+        FROM trips
+        WHERE id = $1
+        "#,
+        id
+    )
+    .fetch_optional(&pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound(format!("Trip {} not found", id)))?;
+
+    Ok(Json(trip))
+}
+
+async fn create_trip(
+    State(pool): State<PgPool>,
+    Json(trip): Json<CreateTrip>,
+) -> Result<impl IntoResponse, AppError> {
+    let result = sqlx::query_as!(
+        Trip,
+        r#"
+        INSERT INTO trips (name, type, region_id, start_date, end_date, description)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, name, type as "type!", region_id, start_date, end_date, description
+        "#,
+        trip.name,
+        trip.r#type,
+        trip.region_id,
+        trip.start_date,
+        trip.end_date,
+        trip.description
+    )
+    .fetch_one(&pool)
+    .await?;
+
+    Ok((StatusCode::CREATED, Json(result)))
+}
+
+async fn list_photos(
+    State(pool): State<PgPool>,
+    Query(params): Query<ListParams>,
+) -> Result<impl IntoResponse, AppError> {
+    let photos = sqlx::query_as!(
+        Photo,
+        r#"
+        SELECT id, url, title, description, object_id, trip_id, taken_at
+        FROM photos
+        ORDER BY taken_at DESC NULLS LAST
+        LIMIT $1
+        OFFSET $2
+        "#,
+        params.limit.unwrap_or(100) as i64,
+        params.offset.unwrap_or(0) as i64
+    )
+    .fetch_all(&pool)
+    .await?;
+
+    Ok(Json(photos))
+}
+
+async fn get_photo(
+    State(pool): State<PgPool>,
+    Path(id): Path<i32>,
+) -> Result<impl IntoResponse, AppError> {
+    let photo = sqlx::query_as!(
+        Photo,
+        r#"
+        SELECT id, url, title, description, object_id, trip_id, taken_at
+        FROM photos
+        WHERE id = $1
+        "#,
+        id
+    )
+    .fetch_optional(&pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound(format!("Photo {} not found", id)))?;
+
+    Ok(Json(photo))
+}
+
+async fn create_photo(
+    State(pool): State<PgPool>,
+    Json(photo): Json<CreatePhoto>,
+) -> Result<impl IntoResponse, AppError> {
+    let result = sqlx::query_as!(
+        Photo,
+        r#"
+        INSERT INTO photos (url, title, description, object_id, trip_id, taken_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, url, title, description, object_id, trip_id, taken_at
+        "#,
+        photo.url,
+        photo.title,
+        photo.description,
+        photo.object_id,
+        photo.trip_id,
+        photo.taken_at
+    )
+    .fetch_one(&pool)
+    .await?;
+
+    Ok((StatusCode::CREATED, Json(result)))
 } 

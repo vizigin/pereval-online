@@ -4,57 +4,47 @@ mod error;
 mod handlers;
 mod models;
 
-use actix_web::{web, App, HttpServer, HttpResponse, Responder};
-use actix_web::middleware::Logger;
-use actix_files as files;
-use dotenv::dotenv;
-use std::io;
+use axum::Router;
+use sqlx::postgres::PgPoolOptions;
+use std::net::SocketAddr;
+use tower_http::trace::TraceLayer;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-async fn index() -> impl Responder {
-    HttpResponse::Ok()
-        .content_type("text/html; charset=utf-8")
-        .body(include_str!("../static/index.html"))
-}
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize tracing
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::new(
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
+        ))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
-#[actix_web::main]
-async fn main() -> io::Result<()> {
-    dotenv().ok();
-    env_logger::init();
+    // Load configuration
+    let config = config::Config::from_env()?;
 
-    let config = config::Config::from_env().expect("Failed to load configuration");
-    let pool = db::create_pool(&config.database_url)
-        .await
-        .expect("Failed to create database pool");
+    // Set up database connection
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&config.database_url)
+        .await?;
 
-    let repository = web::Data::new(db::repository::ObjectRepository::new(pool));
+    // Run migrations
+    // sqlx::migrate!("./migrations")
+    //     .run(&pool)
+    //     .await?;
 
-    println!("Server running at http://{}:{}", config.host, config.port);
+    // Build application with routes
+    let app = Router::new()
+        .merge(handlers::router())
+        .layer(TraceLayer::new_for_http())
+        .with_state(pool);
 
-    HttpServer::new(move || {
-        App::new()
-            .wrap(Logger::default())
-            .app_data(repository.clone())
-            // Главная страница
-            .service(web::resource("/").to(index))
-            // Статические файлы
-            .service(files::Files::new("/static", "static").show_files_listing())
-            // API endpoints
-            .service(
-                web::scope("/api")
-                    .service(
-                        web::resource("/objects")
-                            .route(web::get().to(handlers::search_objects))
-                            .route(web::post().to(handlers::create_object)),
-                    )
-                    .service(
-                        web::resource("/objects/{id}")
-                            .route(web::put().to(handlers::update_object))
-                            .route(web::delete().to(handlers::delete_object)),
-                    )
-                    .service(web::resource("/region/list").route(web::get().to(handlers::get_regions))),
-            )
-    })
-    .bind((config.host, config.port))?
-    .run()
-    .await
+    // Run server
+    let addr = SocketAddr::from(([127, 0, 0, 1], config.server_port));
+    tracing::info!("listening on {}", addr);
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    axum::serve(listener, app).await?;
+
+    Ok(())
 }

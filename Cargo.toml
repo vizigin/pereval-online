@@ -1,31 +1,30 @@
 [package]
-name = "backend"
+name = "pereval-backend"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-actix-web = "4.4"  # Веб-фреймворк
-actix-files = "0.6"  # Раздача статических файлов
-serde = { version = "1.0", features = ["derive"] }  # Сериализация/десериализация
-serde_json = "1.0"  # Работа с JSON
-tokio = { version = "1.0", features = ["full"] }  # Асинхронный runtime
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "bigdecimal", "json"] }  # Работа с базой данных
-dotenv = "0.15"  # Загрузка переменных окружения
-env_logger = "0.10"  # Логирование
-log = "0.4"  # Логирование
-chrono = { version = "0.4", features = ["serde"] }  # Работа с датами и временем
-thiserror = "1.0"  # Улучшенная обработка ошибок
-anyhow = "1.0"  # Упрощенная обработка ошибок
-async-trait = "0.1"  # Асинхронные трейты
-futures = "0.3"  # Утилиты для работы с Future
-tower = "0.4"  # Middleware и сервисы
-tower-http = { version = "0.5", features = ["trace"] }  # HTTP middleware
-derive_more = "0.99"  # Дополнительные derive макросы
-scraper = "0.17"  # Added for HTML parsing
-regex = "1.10"    # Added for text processing
-bigdecimal = "0.4"  # Added for decimal numbers
-num-traits = "0.2"  # For BigDecimal::from_f64
-walkdir = "2.4"  # Для эффективного обхода директорий
+axum = "0.7"
+tokio = { version = "1.0", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
+sqlx = { version = "0.7", features = ["runtime-tokio", "tls-rustls", "postgres", "chrono", "uuid", "bigdecimal"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dotenv = "0.15"
+thiserror = "1.0"
+anyhow = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+derive_more = "0.99"
+bigdecimal = { version = "0.4", features = ["serde"] }
+hyper = { version = "1.0.0-rc.3", features = ["full"] }
+
+[[bin]]
+name = "pereval-backend"
+path = "src/main.rs"
 
 [[bin]]
 name = "import_data"

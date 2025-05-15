@@ -1,47 +1,99 @@
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 use sqlx::types::BigDecimal;
+use sqlx::FromRow;
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+// Constants for object types
+pub const TYPE_PEAK: i16 = 1;
+pub const TYPE_PASS: i16 = 2;
+pub const TYPE_INFRASTRUCTURE: i16 = 3;
+pub const TYPE_GLACIER: i16 = 4;
+pub const TYPE_NATURE: i16 = 5;
+
+// Функция для преобразования type_id в текстовое представление
+pub fn type_id_to_string(type_id: i16) -> Option<&'static str> {
+    match type_id {
+        TYPE_PEAK => Some("вершина"),
+        TYPE_PASS => Some("перевал"),
+        TYPE_INFRASTRUCTURE => Some("объект инфраструктуры"),
+        TYPE_GLACIER => Some("ледник"),
+        TYPE_NATURE => Some("объект природы"),
+        _ => None,
+    }
+}
+
+// Функция для преобразования текстового представления в type_id
+pub fn string_to_type_id(type_str: &str) -> Option<i16> {
+    match type_str {
+        "вершина" => Some(TYPE_PEAK),
+        "перевал" => Some(TYPE_PASS),
+        "объект инфраструктуры" => Some(TYPE_INFRASTRUCTURE),
+        "ледник" => Some(TYPE_GLACIER),
+        "объект природы" => Some(TYPE_NATURE),
+        _ => None,
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Object {
     pub id: i32,
     pub name: String,
-    pub object_type: String,
-    pub region: String,
-    pub country: String,
-    #[serde(with = "bigdecimal_serde")]
-    pub distance_to_border: Option<BigDecimal>,
-    pub has_coordinates: bool,
-    pub has_photos: bool,
-    pub has_reports: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub r#type: String,
+    pub region_id: i32,
+    pub parent_id: Option<i32>,
+    pub height: Option<i32>,
+    #[serde(with = "crate::models::object::bigdecimal_serde")]
+    pub latitude: Option<BigDecimal>,
+    #[serde(with = "crate::models::object::bigdecimal_serde")]
+    pub longitude: Option<BigDecimal>,
+    pub description: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+impl Object {
+    pub fn object_type(&self) -> Option<&str> {
+        type_id_to_string(self.r#type.parse::<i16>().unwrap())
+    }
+
+    pub fn has_coordinates(&self) -> bool {
+        self.latitude.is_some() && self.longitude.is_some()
+    }
+
+    pub fn has_photos(&self) -> bool {
+        // TODO: Implement when photos are added
+        false
+    }
+
+    pub fn has_reports(&self) -> bool {
+        // TODO: Implement when reports are added
+        false
+    }
+}
+
+#[derive(Debug, Deserialize)]
 pub struct CreateObject {
     pub name: String,
-    pub object_type: String,
-    pub region: String,
-    pub country: String,
-    #[serde(with = "bigdecimal_serde")]
-    pub distance_to_border: Option<BigDecimal>,
-    pub has_coordinates: bool,
-    pub has_photos: bool,
-    pub has_reports: bool,
+    pub r#type: String,
+    pub region_id: i32,
+    pub parent_id: Option<i32>,
+    pub height: Option<i32>,
+    #[serde(with = "crate::models::object::bigdecimal_serde")]
+    pub latitude: Option<BigDecimal>,
+    #[serde(with = "crate::models::object::bigdecimal_serde")]
+    pub longitude: Option<BigDecimal>,
+    pub description: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Deserialize)]
 pub struct UpdateObject {
     pub name: Option<String>,
-    pub object_type: Option<String>,
-    pub region: Option<String>,
-    pub country: Option<String>,
-    #[serde(with = "bigdecimal_serde")]
-    pub distance_to_border: Option<BigDecimal>,
-    pub has_coordinates: Option<bool>,
-    pub has_photos: Option<bool>,
-    pub has_reports: Option<bool>,
+    pub r#type: Option<String>,
+    pub region_id: Option<i32>,
+    pub parent_id: Option<i32>,
+    pub height: Option<i32>,
+    #[serde(with = "crate::models::object::bigdecimal_serde")]
+    pub latitude: Option<BigDecimal>,
+    #[serde(with = "crate::models::object::bigdecimal_serde")]
+    pub longitude: Option<BigDecimal>,
+    pub description: Option<String>,
 }
 
 mod bigdecimal_serde {

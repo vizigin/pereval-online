@@ -1,5 +1,10 @@
+pub mod region;
 pub mod object;
-pub mod search;
+pub mod trip;
+pub mod photo;
 
+// Re-export types
+pub use region::{Region, CreateRegion, UpdateRegion};
 pub use object::{Object, CreateObject, UpdateObject};
-pub use search::SearchParams; 
+pub use trip::{Trip, CreateTrip, UpdateTrip};
+pub use photo::{Photo, CreatePhoto, UpdatePhoto}; 

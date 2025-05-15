@@ -8,31 +8,29 @@ pub struct Region {
     pub country: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[serde(default)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct SearchParams {
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub object_type: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub region: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub country: Option<String>,
-    #[serde(with = "bigdecimal_serde", skip_serializing_if = "Option::is_none")]
-    pub distance_to_border_min: Option<BigDecimal>,
-    #[serde(with = "bigdecimal_serde", skip_serializing_if = "Option::is_none")]
-    pub distance_to_border_max: Option<BigDecimal>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    pub type_id: Option<i16>,
+    pub region_id: Option<i32>,
+    pub country_code: Option<String>,
     pub has_coordinates: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub has_photos: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub has_reports: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub per_page: Option<i64>,
+    pub page: Option<i32>,
+    pub limit: Option<i32>,
+}
+
+impl Default for SearchParams {
+    fn default() -> Self {
+        Self {
+            name: None,
+            type_id: None,
+            region_id: None,
+            country_code: None,
+            has_coordinates: None,
+            page: Some(1),
+            limit: Some(20),
+        }
+    }
 }
 
 mod bigdecimal_serde {

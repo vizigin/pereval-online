@@ -1,238 +1,161 @@
-use sqlx::{PgPool, Row, postgres::PgArguments};
-use sqlx::Arguments;
-use crate::models::{Object, CreateObject, UpdateObject, SearchParams};
-use anyhow::Result;
+use sqlx::{PgPool, types::BigDecimal};
+use crate::models::{Object, CreateObject, UpdateObject};
 
-pub struct ObjectRepository {
-    pool: PgPool,
+pub async fn get_object(pool: &PgPool, id: i32) -> Result<Option<Object>, sqlx::Error> {
+    sqlx::query_as!(
+        Object,
+        r#"
+        SELECT id, name, type as "type!", region_id, parent_id, height,
+               latitude, longitude, description
+        FROM objects
+        WHERE id = $1
+        "#,
+        id
+    )
+    .fetch_optional(pool)
+    .await
 }
 
-impl ObjectRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+pub async fn list_objects(
+    pool: &PgPool,
+    limit: Option<i64>,
+    offset: Option<i64>,
+) -> Result<Vec<Object>, sqlx::Error> {
+    sqlx::query_as!(
+        Object,
+        r#"
+        SELECT id, name, type as "type!", region_id, parent_id, height,
+               latitude, longitude, description
+        FROM objects
+        ORDER BY name
+        LIMIT $1
+        OFFSET $2
+        "#,
+        limit.unwrap_or(100) as i64,
+        offset.unwrap_or(0) as i64
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn create_object(pool: &PgPool, object: CreateObject) -> Result<Object, sqlx::Error> {
+    sqlx::query_as!(
+        Object,
+        r#"
+        INSERT INTO objects (name, type, region_id, parent_id, height, latitude, longitude, description)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, name, type as "type!", region_id, parent_id, height,
+                  latitude, longitude, description
+        "#,
+        object.name,
+        object.r#type,
+        object.region_id,
+        object.parent_id,
+        object.height,
+        object.latitude,
+        object.longitude,
+        object.description
+    )
+    .fetch_one(pool)
+    .await
+}
+
+pub async fn update_object(pool: &PgPool, id: i32, object: UpdateObject) -> Result<Option<Object>, sqlx::Error> {
+    let mut query = String::from(
+        r#"
+        UPDATE objects
+        SET "#,
+    );
+    let mut params: Vec<String> = Vec::new();
+    let mut param_index = 1;
+
+    if let Some(ref v) = object.name {
+        params.push(format!("name = ${}", param_index));
+        param_index += 1;
+    }
+    if let Some(ref v) = object.r#type {
+        params.push(format!("type = ${}", param_index));
+        param_index += 1;
+    }
+    if let Some(ref v) = object.region_id {
+        params.push(format!("region_id = ${}", param_index));
+        param_index += 1;
+    }
+    if let Some(ref v) = object.parent_id {
+        params.push(format!("parent_id = ${}", param_index));
+        param_index += 1;
+    }
+    if let Some(ref v) = object.height {
+        params.push(format!("height = ${}", param_index));
+        param_index += 1;
+    }
+    if let Some(ref v) = object.latitude {
+        params.push(format!("latitude = ${}", param_index));
+        param_index += 1;
+    }
+    if let Some(ref v) = object.longitude {
+        params.push(format!("longitude = ${}", param_index));
+        param_index += 1;
+    }
+    if let Some(ref v) = object.description {
+        params.push(format!("description = ${}", param_index));
+        param_index += 1;
     }
 
-    pub async fn search(&self, params: SearchParams) -> Result<(Vec<Object>, i64)> {
-        let mut query = String::from("SELECT * FROM objects WHERE 1=1");
-        let mut count_query = String::from("SELECT COUNT(*) FROM objects WHERE 1=1");
-        let mut conditions = Vec::new();
-        let mut args = PgArguments::default();
-        let mut count_args = PgArguments::default();
-        let mut param_index = 1;
-
-        if let Some(name) = params.name {
-            conditions.push(format!("name ILIKE ${}", param_index));
-            args.add(format!("%{}%", name));
-            count_args.add(format!("%{}%", name));
-            param_index += 1;
-        }
-
-        if let Some(object_type) = params.object_type {
-            conditions.push(format!("object_type ILIKE ${}", param_index));
-            args.add(format!("%{}%", object_type));
-            count_args.add(format!("%{}%", object_type));
-            param_index += 1;
-        }
-
-        if let Some(region) = params.region {
-            conditions.push(format!("region ILIKE ${}", param_index));
-            args.add(format!("%{}%", region));
-            count_args.add(format!("%{}%", region));
-            param_index += 1;
-        }
-
-        if let Some(country) = params.country {
-            conditions.push(format!("country ILIKE ${}", param_index));
-            args.add(format!("%{}%", country));
-            count_args.add(format!("%{}%", country));
-            param_index += 1;
-        }
-
-        if let Some(distance_min) = &params.distance_to_border_min {
-            conditions.push(format!("distance_to_border >= ${}", param_index));
-            args.add(distance_min);
-            count_args.add(distance_min);
-            param_index += 1;
-        }
-
-        if let Some(distance_max) = &params.distance_to_border_max {
-            conditions.push(format!("distance_to_border <= ${}", param_index));
-            args.add(distance_max);
-            count_args.add(distance_max);
-            param_index += 1;
-        }
-
-        if let Some(has_coordinates) = params.has_coordinates {
-            conditions.push(format!("has_coordinates = ${}", param_index));
-            args.add(has_coordinates);
-            count_args.add(has_coordinates);
-            param_index += 1;
-        }
-
-        if let Some(has_photos) = params.has_photos {
-            conditions.push(format!("has_photos = ${}", param_index));
-            args.add(has_photos);
-            count_args.add(has_photos);
-            param_index += 1;
-        }
-
-        if let Some(has_reports) = params.has_reports {
-            conditions.push(format!("has_reports = ${}", param_index));
-            args.add(has_reports);
-            count_args.add(has_reports);
-            param_index += 1;
-        }
-
-        if !conditions.is_empty() {
-            let conditions_str = conditions.join(" AND ");
-            query.push_str(" AND ");
-            query.push_str(&conditions_str);
-            count_query.push_str(" AND ");
-            count_query.push_str(&conditions_str);
-        }
-
-        // Get total count first
-        let total: i64 = sqlx::query_scalar_with(&count_query, count_args)
-            .fetch_one(&self.pool)
-            .await?;
-
-        let page = params.page.unwrap_or(1);
-        let per_page = params.per_page.unwrap_or(20);
-        let offset = (page - 1) * per_page;
-
-        query.push_str(&format!(" ORDER BY id LIMIT {} OFFSET {}", per_page, offset));
-
-        let objects = sqlx::query_as_with::<_, Object, _>(&query, args)
-            .fetch_all(&self.pool)
-            .await?;
-
-        Ok((objects, total))
+    if params.is_empty() {
+        return get_object(pool, id).await;
     }
 
-    pub async fn create(&self, object: CreateObject) -> Result<Object> {
-        let row = sqlx::query_as!(
-            Object,
-            r#"
-            INSERT INTO objects (
-                name, object_type, region, country, distance_to_border,
-                has_coordinates, has_photos, has_reports
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING *
-            "#,
-            object.name,
-            object.object_type,
-            object.region,
-            object.country,
-            object.distance_to_border,
-            object.has_coordinates,
-            object.has_photos,
-            object.has_reports
-        )
-        .fetch_one(&self.pool)
-        .await?;
+    query.push_str(&params.join(", "));
+    query.push_str(&format!(
+        r#"
+        WHERE id = ${}
+        RETURNING id, name, type as "type!", region_id, parent_id, height,
+                  latitude, longitude, description"#,
+        param_index
+    ));
 
-        Ok(row)
+    let mut q = sqlx::query_as::<_, Object>(&query);
+    
+    // Bind parameters in order
+    if let Some(ref v) = object.name {
+        q = q.bind(v);
     }
-
-    pub async fn update(&self, id: i32, object: UpdateObject) -> Result<Option<Object>> {
-        let mut query = String::from("UPDATE objects SET");
-        let mut args_str: Vec<String> = Vec::new();
-        let mut args: Vec<sqlx::types::BigDecimal> = Vec::new();
-        let mut updates = Vec::new();
-        let mut param_index = 1;
-
-        if let Some(name) = object.name {
-            updates.push(format!("name = ${}", param_index));
-            args_str.push(name);
-            param_index += 1;
-        }
-
-        if let Some(object_type) = object.object_type {
-            updates.push(format!("object_type = ${}", param_index));
-            args_str.push(object_type);
-            param_index += 1;
-        }
-
-        if let Some(region) = object.region {
-            updates.push(format!("region = ${}", param_index));
-            args_str.push(region);
-            param_index += 1;
-        }
-
-        if let Some(country) = object.country {
-            updates.push(format!("country = ${}", param_index));
-            args_str.push(country);
-            param_index += 1;
-        }
-
-        if let Some(distance) = object.distance_to_border {
-            updates.push(format!("distance_to_border = ${}", param_index));
-            args.push(distance);
-            param_index += 1;
-        }
-
-        if let Some(has_coordinates) = object.has_coordinates {
-            updates.push(format!("has_coordinates = ${}", param_index));
-            args_str.push(has_coordinates.to_string());
-            param_index += 1;
-        }
-
-        if let Some(has_photos) = object.has_photos {
-            updates.push(format!("has_photos = ${}", param_index));
-            args_str.push(has_photos.to_string());
-            param_index += 1;
-        }
-
-        if let Some(has_reports) = object.has_reports {
-            updates.push(format!("has_reports = ${}", param_index));
-            args_str.push(has_reports.to_string());
-            param_index += 1;
-        }
-
-        if updates.is_empty() {
-            return Ok(None);
-        }
-
-        query.push_str(&format!(" {} WHERE id = ${}", updates.join(", "), param_index));
-        args_str.push(id.to_string());
-
-        let mut query_builder = sqlx::query(&query);
-        for arg in args_str {
-            query_builder = query_builder.bind(arg);
-        }
-
-        for arg in args {
-            query_builder = query_builder.bind(arg);
-        }
-
-        let row = query_builder
-            .fetch_optional(&self.pool)
-            .await?;
-
-        Ok(row.map(|r| Object {
-            id: r.get("id"),
-            name: r.get("name"),
-            object_type: r.get("object_type"),
-            region: r.get("region"),
-            country: r.get("country"),
-            distance_to_border: r.get("distance_to_border"),
-            has_coordinates: r.get("has_coordinates"),
-            has_photos: r.get("has_photos"),
-            has_reports: r.get("has_reports"),
-            created_at: r.get("created_at"),
-            updated_at: r.get("updated_at"),
-        }))
+    if let Some(ref v) = object.r#type {
+        q = q.bind(v);
     }
-
-    pub async fn delete(&self, id: i32) -> Result<bool> {
-        let result = sqlx::query!(
-            "DELETE FROM objects WHERE id = $1",
-            id
-        )
-        .execute(&self.pool)
-        .await?;
-
-        Ok(result.rows_affected() > 0)
+    if let Some(ref v) = object.region_id {
+        q = q.bind(v);
     }
+    if let Some(ref v) = object.parent_id {
+        q = q.bind(v);
+    }
+    if let Some(ref v) = object.height {
+        q = q.bind(v);
+    }
+    if let Some(ref v) = object.latitude {
+        q = q.bind(v);
+    }
+    if let Some(ref v) = object.longitude {
+        q = q.bind(v);
+    }
+    if let Some(ref v) = object.description {
+        q = q.bind(v);
+    }
+    
+    q = q.bind(id);
+    q.fetch_optional(pool).await
+}
+
+pub async fn delete_object(pool: &PgPool, id: i32) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query!(
+        r#"
+        DELETE FROM objects
+        WHERE id = $1
+        "#,
+        id
+    )
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected() > 0)
 } 

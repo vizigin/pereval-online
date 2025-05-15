@@ -566,100 +566,185 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        @media (max-width: 1023px) {
+            .main__header-content {
+                padding: 30px 15px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .main__header-content {
+                padding: 20px 10px;
+            }
+            
+            .main__header {
+                height: auto;
+                min-height: 400px;
+            }
+        }
+
+        @media (max-width: 479px) {
+            .main__header-content {
+                padding: 15px 10px;
+            }
+            
+            .main__header {
+                min-height: 350px;
+            }
         }
 
         .main__title {
             font-family: 'Merriweather', serif;
-            font-size: 32px;
+            font-size: 36px;
             font-weight: 400;
-            line-height: 1.3;
-            margin-bottom: 30px;
-            color: var(--color-text);
+            line-height: 1.4;
+            margin-bottom: 40px;
+            color: #333;
+            text-align: center;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        @media (max-width: 767px) {
+            .main__title {
+                font-size: 28px;
+                margin-bottom: 30px;
+            }
         }
 
         @media (max-width: 479px) {
             .main__title {
-                font-size: 22px;
+                font-size: 24px;
+                margin-bottom: 20px;
             }
         }
 
         .main__stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            display: flex;
+            flex-wrap: wrap;
             gap: 20px;
             margin-bottom: 30px;
+            justify-content: center;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 0 20px;
+        }
+
+        @media (max-width: 767px) {
+            .main__stats {
+                gap: 15px;
+                padding: 0 15px;
+                margin-bottom: 20px;
+            }
+        }
+
+        @media (max-width: 479px) {
+            .main__stats {
+                gap: 10px;
+                padding: 0 10px;
+                margin-bottom: 15px;
+            }
         }
 
         .stat {
-            display: inline-block;
-            vertical-align: top;
+            display: inline-flex;
+            align-items: baseline;
+            min-width: auto;
             white-space: nowrap;
-            margin-right: 50px;
-            margin-bottom: 20px;
-            text-align: center;
+            flex: 0 1 auto;
         }
 
-        @media (max-width: 1259px) {
+        @media (max-width: 767px) {
             .stat {
-                margin-right: 40px;
-                margin-bottom: 10px;
+                flex: 0 1 calc(50% - 15px);
+                justify-content: center;
             }
         }
 
         @media (max-width: 479px) {
             .stat {
-                display: block;
-                margin-bottom: 0;
-                text-align: center;
+                flex: 0 1 100%;
+                justify-content: center;
             }
         }
 
         .stat__value {
-            font-family: 'Open Sans', sans-serif;
-            font-size: 24px;
-            margin-right: 5px;
-            font-weight: 400;
+            font-size: 26px;
             color: #333;
+            line-height: 1.2;
+            margin-right: 5px;
         }
 
-        @media (max-width: 1259px) {
+        @media (max-width: 767px) {
             .stat__value {
-                font-size: 18px;
-                margin-right: 3px;
+                font-size: 20px;
             }
         }
 
         @media (max-width: 479px) {
             .stat__value {
-                display: inline-block;
-                min-width: 4em;
-                text-align: right;
-                font-size: 16px;
-            }
-        }
-
-        @media (max-width: 399px) {
-            .stat__value {
-                font-size: 14px;
+                font-size: 18px;
             }
         }
 
         .stat__label {
-            font-weight: 400;
+            font-size: 18px;
             color: #666;
+        }
+
+        @media (max-width: 767px) {
+            .stat__label {
+                font-size: 14px;
+            }
         }
 
         @media (max-width: 479px) {
             .stat__label {
-                display: inline-block;
-                min-width: 6em;
-                text-align: left;
+                font-size: 12px;
             }
         }
 
         .btn--map {
-            padding: 12px 24px;
-            font-size: 16px;
+            padding: 8px 16px;
+            font-size: 14px;
+            margin-top: 20px;
+            align-self: center;
+        }
+
+        @media (max-width: 767px) {
+            .btn--map {
+                padding: 6px 12px;
+                font-size: 13px;
+                margin-top: 15px;
+            }
+        }
+
+        @media (max-width: 479px) {
+            .btn--map {
+                padding: 5px 10px;
+                font-size: 12px;
+                margin-top: 10px;
+                width: auto;
+            }
+        }
+
+        .main__header-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .main__header-content .btn--map {
+            width: auto;
+            margin-top: 20px;
         }
 
         .section {
@@ -2655,7 +2740,7 @@
                                     </div>
 
                                     <div class="form__item">
-                                        <button type="submit" class="btn btn--primary btn--block">
+                                        <button type="submit" class="btn btn--primary">
                                             <i class="fas fa-search"></i>
                                             Найти
                                         </button>
@@ -2705,31 +2790,31 @@
                     <h1 class="main__title">Самая большая база<br>по горным объектам России и СНГ</h1>
                     <div class="main__stats">
                         <div class="stat">
-                            <div class="stat__value">3210</div>
+                            <div class="stat__value" id="stat-peaks">3209</div>
                             <div class="stat__label">вершин</div>
                         </div>
                         <div class="stat">
-                            <div class="stat__value">10609</div>
+                            <div class="stat__value" id="stat-passes">10608</div>
                             <div class="stat__label">перевалов</div>
                         </div>
                         <div class="stat">
-                            <div class="stat__value">33</div>
+                            <div class="stat__value" id="stat-infrastructure">33</div>
                             <div class="stat__label">объекта инфраструктуры</div>
                         </div>
                         <div class="stat">
-                            <div class="stat__value">1342</div>
+                            <div class="stat__value" id="stat-glaciers">1342</div>
                             <div class="stat__label">ледника</div>
                         </div>
                         <div class="stat">
-                            <div class="stat__value">57</div>
+                            <div class="stat__value" id="stat-nature">57</div>
                             <div class="stat__label">объектов природы</div>
                         </div>
                         <div class="stat">
-                            <div class="stat__value">12140</div>
+                            <div class="stat__value" id="stat-photos">12140</div>
                             <div class="stat__label">фотографий</div>
                         </div>
                         <div class="stat">
-                            <div class="stat__value">7242</div>
+                            <div class="stat__value" id="stat-reports">7242</div>
                             <div class="stat__label">отчёта</div>
                         </div>
                     </div>
@@ -2743,97 +2828,32 @@
                 <div class="main__content">
                     <section class="section">
                         <h2 class="section__title merriweather">Горные районы</h2>
-                        <ul class="menu-list">
-                            <li>
-                                <a href="/regions/caucasus">
-                                    Кавказ
-                                    <span class="menu-list__count">3846</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/pamir">
-                                    Памир и Памиро-Алай
-                                    <span class="menu-list__count">3248</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/tienshan">
-                                    Тянь-Шань
-                                    <span class="menu-list__count">3202</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/baikal">
-                                    Прибайкалье и Забайкалье
-                                    <span class="menu-list__count">1232</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/sayan">
-                                    Саяны
-                                    <span class="menu-list__count">928</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/altai">
-                                    Алтай
-                                    <span class="menu-list__count">870</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/dzungar">
-                                    Джунгарский Алатау
-                                    <span class="menu-list__count">694</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/crimea">
-                                    Крым
-                                    <span class="menu-list__count">399</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/fareast">
-                                    Дальний Восток
-                                    <span class="menu-list__count">184</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/himalaya">
-                                    Гималаи
-                                    <span class="menu-list__count">182</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/alps">
-                                    Альпы
-                                    <span class="menu-list__count">134</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/ural">
-                                    Урал
-                                    <span class="menu-list__count">134</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/northwest">
-                                    Северо-Запад России
-                                    <span class="menu-list__count">98</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions/siberia">
-                                    Средняя Сибирь
-                                    <span class="menu-list__count">51</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/regions">
-                                    Все районы
-                                    <span class="menu-list__more">→</span>
-                                </a>
-                            </li>
+                        <ul class="menu-list" id="region-list">
+                            <li><a href="/regions/33">Кавказ <span class="region-id">[33]</span></a></li>
+                            <li><a href="/regions/144">Памир и Памиро-Алай <span class="region-id">[144]</span></a></li>
+                            <li><a href="/regions/336">Тянь-Шань <span class="region-id">[336]</span></a></li>
+                            <li><a href="/regions/290">Прибайкалье и Забайкалье <span class="region-id">[290]</span></a></li>
+                            <li><a href="/regions/314">Саяны <span class="region-id">[314]</span></a></li>
+                            <li><a href="/regions/1">Алтай <span class="region-id">[1]</span></a></li>
+                            <li><a href="/regions/28">Джунгарский Алатау <span class="region-id">[28]</span></a></li>
+                            <li><a href="/regions/442">Крым <span class="region-id">[442]</span></a></li>
+                            <li><a href="/regions/506">Дальний Восток <span class="region-id">[506]</span></a></li>
+                            <li><a href="/regions/27">Гималаи <span class="region-id">[27]</span></a></li>
+                            <li><a href="/regions/25">Альпы <span class="region-id">[25]</span></a></li>
+                            <li><a href="/regions/434">Урал <span class="region-id">[434]</span></a></li>
+                            <li><a href="/regions/484">Северо-Запад России <span class="region-id">[484]</span></a></li>
+                            <li><a href="/regions/496">Средняя Сибирь <span class="region-id">[496]</span></a></li>
+                            <li><a href="/regions/325">Тавр <span class="region-id">[325]</span></a></li>
+                            <li><a href="/regions/26">Высокий Атлас <span class="region-id">[26]</span></a></li>
+                            <li><a href="/regions/472">Карпаты <span class="region-id">[472]</span></a></li>
+                            <li><a href="/regions/501">Северо-Восточная Сибирь <span class="region-id">[501]</span></a></li>
+                            <li><a href="/regions/324">Кузнецкий Алатау <span class="region-id">[324]</span></a></li>
+                            <li><a href="/regions/476">Островная Арктика <span class="region-id">[476]</span></a></li>
+                            <li><a href="/regions/485">Восточно-Европейская равнина <span class="region-id">[485]</span></a></li>
+                            <li><a href="/regions/491">Западная Сибирь <span class="region-id">[491]</span></a></li>
+                            <li><a href="/regions/492">Горы Южной Сибири <span class="region-id">[492]</span></a></li>
+                            <li><a href="/regions/495">Тыва <span class="region-id">[495]</span></a></li>
+                            <li><a href="/regions/514">Средняя Азия <span class="region-id">[514]</span></a></li>
                         </ul>
                     </section>
                 </div>
@@ -3451,6 +3471,62 @@
                 window.location.href = `/api/objects?${params.toString()}`;
             });
         });
+    </script>
+    <script>
+        // Function to format numbers with thousands separator
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        }
+
+        // Function to update stats
+        async function updateStats() {
+            try {
+                const response = await fetch('/stats');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch stats');
+                }
+                const stats = await response.json();
+                
+                // Update each stat value
+                document.getElementById('stat-peaks').textContent = formatNumber(stats.vertices);
+                document.getElementById('stat-passes').textContent = formatNumber(stats.passes);
+                document.getElementById('stat-infrastructure').textContent = formatNumber(stats.infrastructure);
+                document.getElementById('stat-glaciers').textContent = formatNumber(stats.glaciers);
+                document.getElementById('stat-nature').textContent = formatNumber(stats.nature);
+                document.getElementById('stat-photos').textContent = formatNumber(stats.photos);
+                document.getElementById('stat-reports').textContent = formatNumber(stats.trips);
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+            }
+        }
+
+        // Update stats when the page loads
+        document.addEventListener('DOMContentLoaded', updateStats);
+    </script>
+    <script>
+        // Динамическая загрузка списка районов
+        async function loadRegions() {
+            const list = document.getElementById('region-list');
+            list.innerHTML = '<li>Загрузка...</li>';
+            try {
+                const response = await fetch('/api/region_stats');
+                if (!response.ok) throw new Error('Ошибка загрузки');
+                const regions = await response.json();
+                list.innerHTML = '';
+                regions.forEach(region => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<a href="/regions/${region.region_id}">${region.region_name}<span class="menu-list__count">${region.count}</span></a>`;
+                    list.appendChild(li);
+                });
+                if (regions.length === 0) {
+                    list.innerHTML = '<li>Нет данных</li>';
+                }
+            } catch (e) {
+                console.error('Error loading regions:', e);
+                list.innerHTML = '<li>Ошибка загрузки</li>';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadRegions);
     </script>
 </body>
 </html> 
