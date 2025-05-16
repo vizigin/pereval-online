@@ -47,7 +47,7 @@ pub fn router() -> Router<PgPool> {
         .route("/trips/:id", get(get_trip))
         .route("/photos", get(list_photos).post(create_photo))
         .route("/photos/:id", get(get_photo))
-        .nest_service("/", ServeFile::new("static/index.html"))
+        .nest_service("/", ServeFile::new("static/index2.html"))
 }
 
 async fn get_stats(

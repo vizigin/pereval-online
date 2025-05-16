@@ -1,0 +1,8 @@
+Merriweather-Regular.woff2
+fa-brands-400.woff2
+fa-regular-400.woff2
+fa-solid-900.woff2
+open-sans-v13-latin_cyrillic-300.woff2
+open-sans-v13-latin_cyrillic-600.woff2
+open-sans-v13-latin_cyrillic-700.woff2
+open-sans-v13-latin_cyrillic-regular.woff2
