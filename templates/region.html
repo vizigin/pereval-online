@@ -1,0 +1,964 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="object__block object__block--nomargin object__block--marginbneg content">
+    <nav class="breadcrumbs">
+        <a href="/regions">Все районы</a> / Кавказ
+    </nav>
+    
+    <h1>Кавказ</h1>
+
+    <div class="region__menu">
+        <nav class="menu-list menu-list--inline menu-list--nolink menu-list--nohover menu-list--hover-color">
+            <ul>
+                <li class="mobile-small-show-inline-block"><a class="goto" href="#region-map"><span
+                            class="link link--dashed link--border-closer">Карта<span class="tablet-hide">
+                                района</span></span><span class="arrow-down">↓</span></a></li>
+                <li><a class="goto" href="#region-objects"><span
+                            class="link link--dashed link--border-closer">Объекты<span class="tablet-hide">
+                                района</span></span><span class="arrow-down">↓</span></a></li>
+                <li><a class="goto" href="#region-trips"><span
+                            class="link link--dashed link--border-closer">Отчёты</span><span
+                            class="arrow-down">↓</span></a></li>
+                <li><a class="goto" href="#region-heightest"><span
+                            class="link link--dashed link--border-closer">Высочайшие<span class="mobile-small-hide">
+                                вершины и&nbsp;перевалы</span></span><span class="arrow-down">↓</span></a></li>
+                <li><a class="goto" href="#region-gallery"><span class="link link--dashed link--border-closer"><span
+                                class="mobile-small-show">Посещаемые</span><span class="mobile-small-hide">Самые
+                                посещаемые</span></span><span class="arrow-down">↓</span></a></li>
+            </ul>
+        </nav>
+
+        <div class="region__list">
+            <nav class="menu-list  menu-list--inline  menu-list--nolink">
+                <ul>
+                    {% for subregion in subregions %}
+                    <li>
+                        <a href="/regions/{{ subregion.id }}">
+                            <span class="link">{{ subregion.name }}</span>&nbsp;<span class="color-muted-strong font-smaller">({{ subregion.count }})</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <div class="region__map" id="region-map">
+        <div class="map-wrapper map-expanded-container overflow-hidden"><div class="map js-map js-map--inited hovered-once" data-bounds-primary="true" data-bounds="[[41.02,38.35224],[44.69461,48.3039]]" data-polygone="[[41.27562,48.05862],[41.886329,47.170897],[44.09806,43.21278],[44.69461,38.5656],[44.64108,38.40751],[44.58473,38.35224],[43.436262,40.367155],[42.703719,42.113728],[41.02,48.3039]]"><ymaps class="ymaps-2-1-79-map" style="width: 1165px; height: 360px;"><ymaps class="ymaps-2-1-79-map ymaps-2-1-79-i-ua_js_yes ymaps-2-1-79-map-bg ymaps-2-1-79-islets_map-lang-ru" style="width: 1165px; height: 360px;"><ymaps class="ymaps-2-1-79-inner-panes"><ymaps class="ymaps-2-1-79-events-pane ymaps-2-1-79-user-selection-none" unselectable="on" style="height: 100%; width: 100%; top: 0px; left: 0px; position: absolute; z-index: 2500; cursor: url(&quot;https://web.archive.org/web/20231120081543/https://api-maps.yandex.ru/2.1.79/build/release/images/cursor/grab.cur&quot;) 16 16, url(&quot;https://web.archive.org/web/20231120081543/https://api-maps.yandex.ru/2.1.79/build/release/images/cursor/grab.cur&quot;), move;"></ymaps><ymaps class="ymaps-2-1-79-ground-pane" style="top: 0px; left: 0px; position: absolute; transform: translate3d(0px, 0px, 0px) scale(1, 1); z-index: 501;"><ymaps style="z-index: 150; position: absolute;"><canvas style="position: absolute; width: 1421px; height: 616px; left: -128px; top: -128px;" height="616" width="1421"></canvas></ymaps><ymaps style="z-index: 150; position: absolute;"><canvas style="position: absolute; width: 1421px; height: 616px; left: -128px; top: -128px;" height="616" width="1421"></canvas></ymaps></ymaps><ymaps class="ymaps-2-1-79-copyrights-pane" style="height: 0px; inset: auto 0px 0px; position: absolute; z-index: 5002;"><ymaps><ymaps class="ymaps-2-1-79-copyright ymaps-2-1-79-copyright_logo_no" style=""><ymaps class="ymaps-2-1-79-copyright__fog">…</ymaps><ymaps class="ymaps-2-1-79-copyright__wrap"><ymaps class="ymaps-2-1-79-copyright__layout"><ymaps class="ymaps-2-1-79-copyright__content-cell"><ymaps class="ymaps-2-1-79-copyright__content"><ymaps class="ymaps-2-1-79-copyright__text">© Яндекс</ymaps><ymaps class="ymaps-2-1-79-copyright__agreement">&nbsp;<a class="ymaps-2-1-79-copyright__link" target="_blank" href="https://web.archive.org/web/20231120081543/https://yandex.ru/legal/maps_termsofuse/?lang=ru" rel="noopener">Условия использования</a></ymaps></ymaps></ymaps><ymaps class="ymaps-2-1-79-copyright__logo-cell"><a class="ymaps-2-1-79-copyright__logo" href="" target="_blank"></a></ymaps></ymaps></ymaps></ymaps></ymaps><ymaps class="ymaps-2-1-79-map-copyrights-promo"><ymaps><ymaps class="ymaps-2-1-79-gotoymaps" title="Открыть в Яндекс.Картах"><ymaps class="ymaps-2-1-79-gotoymaps__container"><ymaps class="ymaps-2-1-79-gotoymaps__pin"></ymaps><ymaps class="ymaps-2-1-79-gotoymaps__text-container"><ymaps class="ymaps-2-1-79-gotoymaps__text">Открыть в Яндекс.Картах</ymaps></ymaps></ymaps></ymaps><ymaps class="ymaps-2-1-79-gototaxi" title="Доехать на такси" style="display: none;"><ymaps class="ymaps-2-1-79-gototaxi__container"><ymaps class="ymaps-2-1-79-gototaxi__pin"></ymaps><ymaps class="ymaps-2-1-79-gototaxi__text-container"><ymaps class="ymaps-2-1-79-gototaxi__text"></ymaps></ymaps></ymaps></ymaps><a class="ymaps-2-1-79-gototech" target="_blank" href="https://web.archive.org/web/20231120082033/https://tech.yandex.ru/maps/mapsapi/?from=api-maps">Создать свою карту</a></ymaps></ymaps></ymaps><ymaps class="ymaps-2-1-79-controls-pane" style="width: 100%; top: 0px; left: 0px; position: absolute; z-index: 4503;"><ymaps class="ymaps-2-1-79-controls__toolbar" style="margin-top: 10px;"><ymaps class="ymaps-2-1-79-controls__toolbar_left"></ymaps><ymaps class="ymaps-2-1-79-controls__toolbar_right"></ymaps></ymaps><ymaps class="ymaps-2-1-79-controls__bottom" style="top: 360px;"><ymaps class="ymaps-2-1-79-controls__control map-ruler" style="margin-right: 0px; margin-left: 0px; inset: auto 10px 10px auto; position: inherit;"><ymaps><ymaps style="display: block;"><ymaps style="display: inline-block; height: 100%; vertical-align: top;"><ymaps id="id_172840691656862638198"><ymaps><ymaps class="ymaps-2-1-79-scaleline" style="width: 56px;"><ymaps class="ymaps-2-1-79-scaleline__left"><ymaps class="ymaps-2-1-79-scaleline__left-border"></ymaps><ymaps class="ymaps-2-1-79-scaleline__left-line"></ymaps></ymaps><ymaps class="ymaps-2-1-79-scaleline__center"><ymaps class="ymaps-2-1-79-scaleline__label">100&nbsp;км</ymaps></ymaps><ymaps class="ymaps-2-1-79-scaleline__right"><ymaps class="ymaps-2-1-79-scaleline__right-border"></ymaps><ymaps class="ymaps-2-1-79-scaleline__right-line"></ymaps></ymaps></ymaps></ymaps></ymaps></ymaps><ymaps style="display: inline-block; width: 10px; height: 0"></ymaps><ymaps style="display: inline-block;"><ymaps id="id_172840691656862638199" unselectable="on" class="ymaps-2-1-79-user-selection-none"><ymaps><ymaps class="ymaps-2-1-79-float-button ymaps-2-1-79-_hidden-text" style="max-width: 28px" title="Измерение расстояний на карте"><ymaps class="ymaps-2-1-79-float-button-icon ymaps-2-1-79-float-button-icon_icon_ruler"></ymaps><ymaps class="ymaps-2-1-79-float-button-text"></ymaps></ymaps></ymaps></ymaps></ymaps></ymaps></ymaps></ymaps></ymaps></ymaps><ymaps class="ymaps-2-1-79-areas-pane" style="top: 0px; left: 0px; position: absolute; transform: translate3d(0px, 0px, 0px) scale(1, 1); z-index: 1004;"><ymaps class="ymaps-2-1-79-node-pane ymaps-2-1-79-user-selection-none" style="z-index: 0; top: 0px; left: 0px; position: absolute;" unselectable="on"><ymaps class="ymaps-2-1-79-graphics-canvas" style="top: 0px; left: 0px; transform: translateZ(0px); position: absolute; z-index: 650;"><ymaps><canvas width="320" height="320" style="position: absolute; width: 320px; height: 320px; left: 339px; top: -99px;"></canvas><canvas width="320" height="320" style="position: absolute; width: 320px; height: 320px; left: 339px; top: 221px;"></canvas><canvas width="320" height="320" style="position: absolute; width: 320px; height: 320px; left: 659px; top: -99px;"></canvas><canvas width="320" height="320" style="position: absolute; width: 320px; height: 320px; left: 659px; top: 221px;"></canvas></ymaps></ymaps></ymaps></ymaps></ymaps></ymaps></ymaps>
+<div class="map-controls active">
+<div class="map-control map-control--expand js-map-expand"><i class="fa fa-expand"></i><i class="fa fa-compress"></i></div>
+
+<div class="map-control map-control--settings tooltip tooltip-popover tooltip-popover-right tooltipstered tooltip-inited" data-tooltip-content="#map-settings" data-tooltipster="{&quot;side&quot;: &quot;bottom&quot;}">
+    <i class="fa fa-cog"></i>
+    <div class="map-control__icon"></div>
+    <div class="map-control__tooltip tooltip tooltip-notouch tooltipstered tooltip-inited" data-title="Настройки карты" data-tooltipster="{&quot;side&quot;: &quot;left&quot;}"></div>
+    <div class="hidden">
+        <div id="map-settings">
+            <div class="checkboxes">
+                <div class="checkbox-wrapper">
+                    <label class="checkbox checkbox-plain-js checkbox-plain-js-inited">
+                        <input class="js-cookie-set js-map-objects-update checkbox-plain-js-inited" data-update-event-type="change" data-cookie="{&quot;expires&quot;: 525600}" name="mapSettingsShowName" type="checkbox" value="1">
+                        <span class="checkbox__icon"></span>
+                        показывать названия
+                    </label>
+                </div>
+                <div class="checkbox-wrapper">
+                    <label class="checkbox checkbox-plain-js checkbox-plain-js-inited">
+                        <input class="js-cookie-set js-map-objects-update checkbox-plain-js-inited" data-update-event-type="change" data-cookie="{&quot;expires&quot;: 525600}" name="mapSettingsShowParams" type="checkbox" value="1">
+                        <span class="checkbox__icon"></span>
+                        показывать категорию и высоту
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="map-control map-control--zoom-in js-map-zoom-in"><i class="fa fa-plus"></i></div>
+<div class="map-control map-control--zoom-out js-map-zoom-out"><i class="fa fa-minus"></i></div>
+<div class="map-control map-control--find-me js-map-find-me">
+    <i class="far fa-dot-circle"></i>
+    <div class="map-control__tooltip tooltip tooltip-notouch tooltipstered tooltip-inited" data-title="Найти, где я" data-tooltipster="{&quot;side&quot;: &quot;left&quot;}"></div>
+</div>
+
+
+    
+
+
+<div class="map-control map-control--type tooltip tooltip-popover tooltipstered tooltip-inited" data-tooltip-content="#map-type-menu" data-tooltipster="{&quot;side&quot;: &quot;top&quot;}">
+    <i class="fa fa-map"></i>
+    <div class="map-control__icon"><i class="icon-bing"></i></div>
+    <div class="map-control__tooltip tooltip tooltip-notouch tooltipstered tooltip-inited" data-title="Тип карты" data-tooltipster="{&quot;side&quot;: &quot;right&quot;}"></div>
+    <div class="hidden">
+        <nav class="menu-list menu-list--btns menu-list--on-map js-map-type" id="map-type-menu">
+            <ul>
+                <li><a href="#" class="tooltip-closest-hide" data-value="yandex#hybrid"><i class="icon-yandex"></i>Яндекс</a></li>
+                <li><a href="#" class="tooltip-closest-hide" data-value="google#map"><i class="icon-google"></i>Google</a></li>
+                <li class="active"><a href="#" class="tooltip-closest-hide" data-value="bing#map"><i class="icon-bing"></i>Bing</a></li>
+                <li><a href="#" class="tooltip-closest-hide" data-value="osm_topo#map"><i class="icon-osm"></i>Open Street TopoMap</a></li>
+                <li><a href="#" class="tooltip-closest-hide" data-value="osm#map"><i class="icon-osm"></i>Open Street Map</a></li>
+                <li><a href="#" class="tooltip-closest-hide" data-value="genshtab#map"><i class="icon-serp-molot"></i>Карты Генштаба СССР</a></li>
+                <li><a href="#" class="tooltip-closest-hide" data-value="ggc#map"><i class="icon-isobar"></i>Карты ГосГисЦентра</a></li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<div class="map-crosshair"></div>
+<div class="map-latlng js-copy tooltip tooltip-notouch tooltipstered tooltip-inited js-copy-inited" data-tooltipster="{&quot;side&quot;: &quot;top&quot;}" data-clipboard-text="42.88485, 43.32807"><span class="map-latlng__value map-latlng-value">42.88485, 43.32807</span></div>
+
+
+
+
+<div class="map-control map-control--search js-map-search">
+    <i class="fa fa-search"></i>
+    <div class="map-control__tooltip tooltip tooltipstered tooltip-inited" data-title="Найти на карте" data-tooltipster="{&quot;side&quot;: &quot;right&quot;, &quot;trigger&quot;: &quot;custom&quot;, &quot;triggerOpen&quot;: { &quot;mouseenter&quot;: true, &quot;touchstart&quot;: false }, &quot;triggerClose&quot;: { &quot;mouseleave&quot;: true, &quot;originClick&quot;: false, &quot;touchleave&quot;: false }}"></div>
+</div>
+
+<div class="map-search">
+    <div class="textfield-wrapper">
+        <input class="textfield textfield--after-hide-if-reset js-autocomplete textfield-after-inited js-autocomplete-inited" placeholder=" " autocomplete="off" data-autocomplete-lookup-function="mapSearchLookup" data-autocomplete-param-name="q" data-autocomplete-auto-select-first="true" data-autocomplete-preserve-input="true" data-autocomplete-show-on-map="true" name="name" type="text">
+        <span class="textfield-placeholder">Найти на карте</span>
+        <span class="textfield-reset"></span>
+        <span class="textfield-after pointer-events-none"><i class="fa fa-search"></i></span>
+    </div>
+</div>
+
+</div>
+
+<div class="map-multitouch-required">Перемещать карту<br> можно двумя пальцами</div>
+</div></div>
+        <div class="map-wrapper">
+            <div class="map"></div>
+        </div>
+    </div>
+
+
+    <div class="object__tabbed object__block object__block--grey-light" id="region-objects">
+        <div class="object__tabbed-title object__block-title">
+            Объекты района
+            <span class="object__block-title-suffix color-muted-strong font-smaller">({{ stats.passes + stats.vertices + stats.glaciers + stats.infrastructure + stats.nature }})</span>
+        </div>
+        <div class="object__block-title-tip mobile-medium-hide">
+            <div class="object__block-title-tip-inner font-small color-muted-strong">
+                Объекты отсортированы<br>по&nbsp;количеству информации по&nbsp;ним
+            </div>
+        </div>
+        <div class="object__tabbed-content">
+            <nav class="tabs tabs--inline tabs-js">
+                <div class="tabs__inner tabs-fixed-center scroll-in-start scroll-in-end">
+                    <div class="tabs__scroll tabs-fixed-center-scroll">
+                        <div class="tabs__scroll-inner">
+                            <ul>
+                                <li class="active">
+                                    <a href="/web/20241008170156/https://pereval.online/region/33/type/2"
+                                        data-tab-selector="#tab-region-objects-2">
+                                        <div class="object__tabbed-category">
+                                            Перевалы
+                                            <span class="color-muted-strong font-smaller font-regular">
+                                                ({{ stats.passes }})
+                                            </span>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="/web/20241008170156/https://pereval.online/region/33/type/1"
+                                        data-tab-selector="#tab-region-objects-1">
+                                        <div class="object__tabbed-category">
+                                            Вершины
+                                            <span class="color-muted-strong font-smaller font-regular">
+                                                ({{ stats.vertices }})
+                                            </span>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="/web/20241008170156/https://pereval.online/region/33/type/4"
+                                        data-tab-selector="#tab-region-objects-4">
+                                        <div class="object__tabbed-category">
+                                            Ледники
+                                            <span class="color-muted-strong font-smaller font-regular">
+                                                ({{ stats.glaciers }})
+                                            </span>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="/web/20241008170156/https://pereval.online/region/33/type/3"
+                                        data-tab-selector="#tab-region-objects-3">
+                                        <div class="object__tabbed-category">
+                                            Объекты инфраструктуры
+                                            <span class="color-muted-strong font-smaller font-regular">
+                                                ({{ stats.infrastructure }})
+                                            </span>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="/web/20241008170156/https://pereval.online/region/33/type/5"
+                                        data-tab-selector="#tab-region-objects-5">
+                                        <div class="object__tabbed-category">
+                                            Объекты природы
+                                            <span class="color-muted-strong font-smaller font-regular">
+                                                ({{ stats.nature }})
+                                            </span>
+                                        </div>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="tab-panes">
+                <div id="tab-region-objects-2" class="tab-pane  active ">
+                    <div class="object__tabbed-list  object__tabbed-list--type-2" data-scroll-load-page="1"
+                        data-scroll-load-insert-before="#tab-region-objects-2 .object__tabbed-item--more"
+                        data-scroll-load-inactive-class="hidden"
+                        data-hide-on-last-load="#tab-region-objects-2 .object__tabbed-item--more"
+                        data-scroll-load-url="/region/33/more/2">
+                        <div class="object__tabbed-item">
+                            <div
+                                class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                <div class="sobject" data-latlng="43.29665,42.400333" data-id="3509"><a
+                                        href="/web/20241008170156/https://pereval.online/object/3509"
+                                        class="sobject__link">пер. Хотютау</a><span class="sobject__params"> (1Б,
+                                        3&nbsp;546&nbsp;м)<i
+                                            class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="Есть координаты"></i><i
+                                            class="far fa-image tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="22 фотографии"><sup> 22</sup></i><i
+                                            class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="113 отчётов"><sup> 113</sup></i></span></div>
+                                <div class="sobject-nbsp">&nbsp;</div>
+                            </div>
+                        </div>
+                        <div class="object__tabbed-item object__tabbed-item--more">
+                            <a class="link link--dashed link--border-closer show-more" href="#"
+                                data-load-container="#tab-region-objects-2 .object__tabbed-list"><i
+                                    class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
+                        </div>
+                    </div>
+                </div>
+                <div id="tab-region-objects-1" class="tab-pane ">
+                    <div class="object__tabbed-list  object__tabbed-list--type-1" data-scroll-load-page="1"
+                        data-scroll-load-insert-before="#tab-region-objects-1 .object__tabbed-item--more"
+                        data-scroll-load-inactive-class="hidden"
+                        data-hide-on-last-load="#tab-region-objects-1 .object__tabbed-item--more"
+                        data-scroll-load-url="/region/33/more/1">
+                        <div class="object__tabbed-item">
+                            <div
+                                class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                <div class="sobject" data-latlng="43.352457,42.437902" data-id="3824"><a
+                                        href="/web/20241008170156/https://pereval.online/object/3824"
+                                        class="sobject__link">г. Эльбрус</a><span class="sobject__params">
+                                        (5&nbsp;642&nbsp;м)<i
+                                            class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="Есть координаты"></i><i
+                                            class="far fa-image tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="212 фотографий"><sup> 212</sup></i><i
+                                            class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="34 отчёта"><sup> 34</sup></i></span></div>
+                                <div class="sobject-nbsp">&nbsp;</div>
+                            </div>
+                        </div>
+                        <div class="object__tabbed-item object__tabbed-item--more">
+                            <a class="link link--dashed link--border-closer show-more" href="#"
+                                data-load-container="#tab-region-objects-1 .object__tabbed-list"><i
+                                    class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
+                        </div>
+                    </div>
+                </div>
+                <div id="tab-region-objects-4" class="tab-pane ">
+                    <div class="object__tabbed-list  object__tabbed-list--type-4" data-scroll-load-page="1"
+                        data-scroll-load-insert-before="#tab-region-objects-4 .object__tabbed-item--more"
+                        data-scroll-load-inactive-class="hidden"
+                        data-hide-on-last-load="#tab-region-objects-4 .object__tabbed-item--more"
+                        data-scroll-load-url="/region/33/more/4">
+                        <div class="object__tabbed-item">
+                            <div
+                                class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                <div class="sobject" data-latlng="43.036208,43.060853" data-id="13780"><a
+                                        href="/web/20241008170156/https://pereval.online/object/13780"
+                                        class="sobject__link">лед. Безенги</a><span class="sobject__params"><i
+                                            class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="Есть координаты"></i><i
+                                            class="far fa-image tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="13 фотографий"><sup> 13</sup></i><i
+                                            class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="94 отчёта"><sup> 94</sup></i></span></div>
+                                <div class="sobject-nbsp">&nbsp;</div>
+                            </div>
+                        </div>
+                        <div class="object__tabbed-item object__tabbed-item--more">
+                            <a class="link link--dashed link--border-closer show-more" href="#"
+                                data-load-container="#tab-region-objects-4 .object__tabbed-list"><i
+                                    class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
+                        </div>
+                    </div>
+                </div>
+                <div id="tab-region-objects-3" class="tab-pane ">
+                    <div class="object__tabbed-list  object__tabbed-list--type-3" data-scroll-load-page="1"
+                        data-scroll-load-insert-before="#tab-region-objects-3 .object__tabbed-item--more"
+                        data-scroll-load-inactive-class="hidden"
+                        data-hide-on-last-load="#tab-region-objects-3 .object__tabbed-item--more"
+                        data-scroll-load-url="/region/33/more/3">
+                        <div class="object__tabbed-item">
+                            <div
+                                class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                <div class="sobject" data-latlng="43.11102,43.14756" data-id="13588"><a
+                                        href="/web/20241008170156/https://pereval.online/object/13588"
+                                        class="sobject__link">а/л Безенги</a><span class="sobject__params"><i
+                                            class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="Есть координаты"></i><i
+                                            class="far fa-image tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="5 фотографий"><sup> 5</sup></i><i
+                                            class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="72 отчёта"><sup> 72</sup></i></span></div>
+                                <div class="sobject-nbsp">&nbsp;</div>
+                            </div>
+                        </div>
+                        <div class="object__tabbed-item object__tabbed-item--more">
+                            <a class="link link--dashed link--border-closer show-more" href="#"
+                                data-load-container="#tab-region-objects-3 .object__tabbed-list"><i
+                                    class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
+                        </div>
+                    </div>
+                </div>
+                <div id="tab-region-objects-5" class="tab-pane ">
+                    <div class="object__tabbed-list  object__tabbed-list--type-5" data-scroll-load-page="1"
+                        data-scroll-load-insert-before="#tab-region-objects-5 .object__tabbed-item--more"
+                        data-scroll-load-inactive-class="hidden"
+                        data-hide-on-last-load="#tab-region-objects-5 .object__tabbed-item--more"
+                        data-scroll-load-url="/region/33/more/5">
+                        <div class="object__tabbed-item">
+                            <div
+                                class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                <div class="sobject" data-latlng="43.26615,42.47989" data-id="19249"><a
+                                        href="/web/20241008170156/https://pereval.online/object/19249"
+                                        class="sobject__link">пол. Азау</a><span class="sobject__params"><i
+                                            class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="Есть координаты"></i><i
+                                            class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="40 отчётов"><sup> 40</sup></i></span></div>
+                                <div class="sobject-nbsp">&nbsp;</div>
+                            </div>
+                        </div>
+                        <div class="object__tabbed-item object__tabbed-item--more">
+                            <a class="link link--dashed link--border-closer show-more" href="#"
+                                data-load-container="#tab-region-objects-5 .object__tabbed-list"><i
+                                    class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="object__tabbed object__tabbed--trips object__block object__block--grey-light" id="region-trips">
+        <div class="object__tabbed-title object__block-title">
+            Отчёты по&nbsp;району
+            <span class="object__block-title-suffix color-muted-strong font-smaller">(1726)</span>
+        </div>
+        <div class="object__tabbed-content">
+            <nav class="tabs tabs--inline tabs-js">
+                <div class="tabs__inner tabs-fixed-center scroll-in-start scroll-in-end">
+                    <div class="tabs__scroll tabs-fixed-center-scroll">
+                        <div class="tabs__scroll-inner">
+                            <ul>
+                                <li class="active"><a href="#tab-trips-1">
+                                        <div class="object__tabbed-category">Горный <span
+                                                class="color-muted-strong font-smaller font-regular">(1281)</span></div>
+                                    </a></li>
+                                <li><a href="#tab-trips-2">
+                                        <div class="object__tabbed-category">Пеший <span
+                                                class="color-muted-strong font-smaller font-regular">(292)</span></div>
+                                    </a></li>
+                                <li><a href="#tab-trips-4">
+                                        <div class="object__tabbed-category">Велосипедный <span
+                                                class="color-muted-strong font-smaller font-regular">(115)</span></div>
+                                    </a></li>
+                                <li><a href="#tab-trips-3">
+                                        <div class="object__tabbed-category">Лыжный <span
+                                                class="color-muted-strong font-smaller font-regular">(22)</span></div>
+                                    </a></li>
+                                <li><a href="#tab-trips-6">
+                                        <div class="object__tabbed-category">Горно-пеший <span
+                                                class="color-muted-strong font-smaller font-regular">(16)</span></div>
+                                    </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+
+            <div class="tab-panes">
+                <div id="tab-trips-1" class="tab-pane  active ">
+                    <div class="object__tabbed-list" data-scroll-load-page="1"
+                        data-scroll-load-insert-before="#tab-trips-1 .object__tabbed-item--more"
+                        data-scroll-load-inactive-class="hidden"
+                        data-hide-on-last-load="#tab-trips-1 .object__tabbed-item--more"
+                        data-scroll-load-url="/region/33/more/trip/1">
+                        <div class="object__tabbed-item object__tabbed-item--trip">
+
+
+                            <div
+                                class="sobject-wrapper sobject-wrapper--trip sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                <div class="sobject" data-id="7970">
+                                    <a href="/web/20241008170156/https://pereval.online/trip/7970"
+                                        class="sobject__link"><span>2 к.с.</span><span>, Кавказ</span><span>,</span>
+                                        сентябрь–октябрь 2023
+                                        <span>(</span><span>Андрей Шу</span><span>, Ставрополь</span><span>)</span></a>
+                                    <span class="sobject__params">
+                                        пос. Нижнее Гаквари
+                                        →
+                                        пер. Богху (н/к,3000)
+                                        →
+
+                                        пер. Заин
+                                        (1А, 3&nbsp;072&nbsp;м)
+                                        →
+                                        вер. Заинкорт (3308, радиально)
+                                        →
+                                        д.р. Чадыри
+                                        →
+                                        пер. Ракдалхи (н/к, 2606)
+                                        →
+                                        пер. Ягодак (1А, 2894)
+                                        →
+                                        пер. МАТИ (1А, 2742)
+                                        →
+                                        отм. 3030
+                                        →
+                                        отм. 3129
+                                        →
+
+                                        пер. Гакко
+                                        (1А, 2&nbsp;997&nbsp;м)
+                                        →
+                                        вер. Хулан (3378)
+                                        →
+
+                                        пер. Хулан
+                                        (1Б, 3&nbsp;290&nbsp;м)
+                                        →
+                                        пер. Бухалав (1А, 3460)
+                                        →
+                                        пос. Гакко
+                                        →
+                                        пос. Акнада
+                                        →
+                                        коч. Цобе-Годари
+                                        →
+                                        ГМС &lt;Сулак высокогорная&gt;
+                                        →
+                                        траверс в. Нессер
+                                        →
+                                        пер. Нессер (1Б, 3525)
+                                        →
+                                        С-З гребень Аддала-Шухгельмеэр (радиально)
+                                        →
+
+                                        пер. Ижена
+                                        (1Б, 3&nbsp;439&nbsp;м)
+                                        →
+                                        д.р. Акундари
+                                        →
+
+                                        пер. Чартля
+                                        (1Б, 3&nbsp;333&nbsp;м)
+                                        →
+                                        д.р. Семилдаор
+                                        →
+
+                                        пер. Чалда
+                                        (1А, 3&nbsp;482&nbsp;м)
+                                        →
+                                        д.р. Тунсадаор
+                                        →
+
+                                        пер. Анцох
+                                        (1Б, 3&nbsp;418&nbsp;м)
+                                        →
+                                        д.р. Чеерабор
+                                        →
+
+                                        пер. Янаван
+                                        (1А, 3&nbsp;241&nbsp;м)
+                                        →
+
+                                        пер. Бобитли
+                                        (1А, 3&nbsp;168&nbsp;м)
+                                        →
+                                        д.р. Янаван
+                                        →
+
+                                        пер. Баркинтарах
+                                        (1Б, 3&nbsp;569&nbsp;м)
+                                        →
+                                        д.р. Жижия
+                                        →
+                                        пос. Хварши
+                                        →
+                                        пос. Сантлада
+
+                                    </span>
+                                </div>
+                                <div class="sobject-nbsp">&nbsp;<span class="sobject__nbsp-2">&nbsp;</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="object__tabbed-item object__tabbed-item--more">
+                            <a class="link link--dashed link--border-closer show-more" href="#"
+                                data-load-container="#tab-trips-1 .object__tabbed-list"><i
+                                    class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
+                        </div>
+                    </div>
+                </div>
+                <div id="tab-trips-2" class="tab-pane ">
+                    <div class="object__tabbed-list" data-scroll-load-page="1"
+                        data-scroll-load-insert-before="#tab-trips-2 .object__tabbed-item--more"
+                        data-scroll-load-inactive-class="hidden"
+                        data-hide-on-last-load="#tab-trips-2 .object__tabbed-item--more"
+                        data-scroll-load-url="/region/33/more/trip/2">
+                        <div class="object__tabbed-item object__tabbed-item--trip">
+
+
+                            <div
+                                class="sobject-wrapper sobject-wrapper--trip sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                <div class="sobject" data-id="7983">
+                                    <a href="/web/20241008170156/https://pereval.online/trip/7983"
+                                        class="sobject__link"><span>1 к.с.</span><span>, Западный
+                                            Кавказ</span><span>,</span>
+                                        ноябрь 2023
+                                        <span>(</span><span>Сергеева Анна Альбертовна</span><span>,
+                                            Санкт-Петербург</span><span>)</span></a> <span class="sobject__params">
+                                        с. Новопрохладное
+                                        →
+                                        д.р. Сахрай
+                                        →
+                                        ур. Тайвань
+                                        →
+
+                                        Фирсова поляна
+
+                                        →
+
+                                        Княжеская поляна
+
+                                        →
+
+                                        г. Большой Тхач
+                                        (2&nbsp;368&nbsp;м)
+                                        →
+
+                                        пер. Тхачский
+                                        (н/к)
+                                        →
+
+                                        пер. Осетинский
+                                        (н/к)
+                                        →
+
+                                        пер. Чертовы ворота
+                                        (н/к)
+                                        →
+                                        траверс склона г. Восточный Ачешбок
+                                        →
+                                        верхние истоки р. Мертвая Балка
+                                        →
+                                        балаган Додогачей
+                                        →
+                                        хребет Малый Бамбак
+                                        →
+                                        пос. Никитино
+                                        →
+
+                                        г. Хацавита
+
+                                        →
+                                        д.р. Золотоносная
+                                        →
+                                        д.р. Бескес
+                                        →
+
+                                        с. Курджиново
+
+                                        →
+                                        пос. Азиатский
+                                        →
+                                        д.р. Большая Лаба
+
+                                    </span>
+                                </div>
+                                <div class="sobject-nbsp">&nbsp;<span class="sobject__nbsp-2">&nbsp;</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="object__tabbed-item object__tabbed-item--more">
+                            <a class="link link--dashed link--border-closer show-more" href="#"
+                                data-load-container="#tab-trips-2 .object__tabbed-list"><i
+                                    class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
+                        </div>
+                    </div>
+                </div>
+                <div id="tab-trips-4" class="tab-pane ">
+                    <div class="object__tabbed-list" data-scroll-load-page="1"
+                        data-scroll-load-insert-before="#tab-trips-4 .object__tabbed-item--more"
+                        data-scroll-load-inactive-class="hidden"
+                        data-hide-on-last-load="#tab-trips-4 .object__tabbed-item--more"
+                        data-scroll-load-url="/region/33/more/trip/4">
+                        <div class="object__tabbed-item object__tabbed-item--trip">
+
+
+                            <div
+                                class="sobject-wrapper sobject-wrapper--trip sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                <div class="sobject" data-id="7775">
+                                    <a href="/web/20241008170156/https://pereval.online/trip/7775"
+                                        class="sobject__link"><span>4 к.с.</span><span>, Армянское
+                                            нагорье</span><span>,</span>
+                                        июнь 2022
+                                        <span>(</span><span>Романов Д.А.</span><span>, Москва</span><span>)</span></a>
+                                    <span class="sobject__params">
+                                        г. Ереван
+                                        →
+                                        г. Вагаршапат
+                                        →
+                                        н.п. Мармарашен
+                                        →
+                                        м. Хор Вирап
+                                        →
+                                        н.п. Лусарат
+                                        →
+                                        н.п. Нор Каянк
+                                        →
+                                        н.п. Арташат
+                                        →
+                                        н.п. Ланджазат
+                                        →
+                                        н.п. Бонаван
+                                        →
+                                        ущ.р. Азат (3 к.т.)
+                                        →
+                                        хр. Ераносский (4 к.т.)
+                                        →
+                                        р. Дарбанл
+                                        →
+                                        хр. Гегамский (4 к.т.)
+                                        →
+                                        н.п. Геташен
+                                        →
+                                        С-В берег оз. Севан (2 к.т.)
+                                        →
+                                        пер. Красносельский
+                                        →
+                                        н.п. Чамбарак
+                                        →
+                                        н.п. Дпрабак
+                                        →
+                                        пер. Дузюрт (4 к.т.)
+                                        →
+                                        н.п. Цовагюх
+                                        →
+                                        пер. Севанский
+                                        →
+                                        н.п. Дилижан
+                                        →
+                                        ущ.р. Агстев (2 к.т.)
+                                        →
+                                        пер. Маргаовитский (4 к.т.)
+                                        →
+                                        н.п. Меградзор
+                                        →
+                                        н.п. Анканаван
+                                        →
+                                        хр. Цахкуняц (3 к.т.)
+                                        →
+                                        н.п. Апаран
+                                        →
+                                        н.п. Апнагюх
+                                        →
+                                        гора Арагац (4 к.т.)
+                                        →
+                                        кр. Амберт
+                                        →
+                                        н.п. Бюрокан
+                                        →
+                                        г. Ереван.
+
+                                    </span>
+                                </div>
+                                <div class="sobject-nbsp">&nbsp;<span class="sobject__nbsp-2">&nbsp;</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="object__tabbed-item object__tabbed-item--more">
+                            <a class="link link--dashed link--border-closer show-more" href="#"
+                                data-load-container="#tab-trips-4 .object__tabbed-list"><i
+                                    class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
+                        </div>
+                    </div>
+                </div>
+                <div id="tab-trips-3" class="tab-pane ">
+                    <div class="object__tabbed-list" data-scroll-load-page="1"
+                        data-scroll-load-insert-before="#tab-trips-3 .object__tabbed-item--more"
+                        data-scroll-load-inactive-class="hidden"
+                        data-hide-on-last-load="#tab-trips-3 .object__tabbed-item--more"
+                        data-scroll-load-url="/region/33/more/trip/3">
+                        <div class="object__tabbed-item object__tabbed-item--trip">
+
+
+                            <div
+                                class="sobject-wrapper sobject-wrapper--trip sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                <div class="sobject" data-id="7850">
+                                    <a href="/web/20241008170156/https://pereval.online/trip/7850"
+                                        class="sobject__link"><span>5 к.с.</span><span>, Армянское
+                                            нагорье</span><span>,</span>
+                                        февраль–март 2019
+                                        <span>(</span><span>Карпов О. Н.</span><span>)</span></a> <span
+                                        class="sobject__params">
+                                        пос. Верин Ахта
+                                        →
+                                        коч. Шадыбула
+                                        →
+                                        склон г. Аждаак (малый)
+                                        →
+                                        склон г. Севкатар
+                                        →
+                                        оз. Канигель
+                                        →
+                                        пер. между г. Агудаг и г. 3458,3
+                                        →
+                                        г. Аждаак (3597,3м, 1А)
+                                        →
+                                        склон г. Казели
+                                        →
+                                        склон г. Спитакасар
+                                        →
+                                        склон г. Мал. Спитакасар
+                                        →
+                                        р. Назархана
+                                        →
+                                        пер. в верх. р. Назархана и р. Азат близ г. Манкув (1Б)
+                                        →
+                                        склон г. Манкув
+                                        →
+                                        траверс склона Гегамского хр. в районе верш. 2567,4 в верх. р. Веди (1Б)
+                                        →
+                                        траверс склона г. Топдаг и г. Дидбанк (1Б)
+                                        →
+                                        траверс склона г. Гндасар и г. Ростоюрд (2А)
+                                        →
+                                        Селимский пер. (2410м)
+                                        →
+                                        пер. между р. Мартуни и одним из притоков р. Ехегис в районе г. Каркатар (2А)
+                                        →
+                                        склон г. Сохуял
+                                        →
+                                        траверс склона г. Варденис (1Б)
+                                        →
+                                        траверс Варденисского хр.а, водораздела бассейна р. Арпа и р. Эльгис (н/к)
+                                        →
+                                        склон г. Чахатсар
+                                        →
+                                        склон г. Мурадсар
+                                        →
+                                        г. Джермук
+
+                                    </span>
+                                </div>
+                                <div class="sobject-nbsp">&nbsp;<span class="sobject__nbsp-2">&nbsp;</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="object__tabbed-item object__tabbed-item--more">
+                            <a class="link link--dashed link--border-closer show-more" href="#"
+                                data-load-container="#tab-trips-3 .object__tabbed-list"><i
+                                    class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
+                        </div>
+                    </div>
+                </div>
+                <div id="tab-trips-6" class="tab-pane ">
+                    <div class="object__tabbed-list" data-scroll-load-page="1"
+                        data-scroll-load-insert-before="#tab-trips-6 .object__tabbed-item--more"
+                        data-scroll-load-inactive-class="hidden"
+                        data-hide-on-last-load="#tab-trips-6 .object__tabbed-item--more"
+                        data-scroll-load-url="/region/33/more/trip/6">
+                        <div class="object__tabbed-item object__tabbed-item--trip">
+
+
+                            <div
+                                class="sobject-wrapper sobject-wrapper--trip sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                <div class="sobject" data-id="7876">
+                                    <a href="/web/20241008170156/https://pereval.online/trip/7876"
+                                        class="sobject__link"><span>1 к.с.</span><span>, Центральный
+                                            Кавказ</span><span>,</span>
+                                        июль–август 2021
+                                        <span>(</span><span>Троянский Г.С.</span><span>, Москва</span><span>)</span></a>
+                                    <span class="sobject__params">
+                                        пос. верх. Баксан
+                                        →
+
+                                        оз. Сылтранкёль
+
+                                        →
+
+                                        пер. Сылтран Восточный
+                                        (1А, 3&nbsp;478&nbsp;м)
+                                        →
+                                        д.р.Мукал
+                                        →
+                                        д.р. Мкяра
+                                        →
+                                        д.р. Кыртык
+                                        →
+                                        д.р. Улуесенчи
+                                        →
+
+                                        пер. Кыртыкауш
+                                        (н/к, 3&nbsp;242&nbsp;м)
+                                        →
+
+                                        пер. Кыртык Верхний
+                                        (1Б, 3&nbsp;399&nbsp;м)
+                                        →
+                                        левый приток р. Карангыкол
+                                        →
+                                        пер. Карангы Водораздельный (1А,3474 м)
+                                        →
+                                        оз. Карангыкёль
+                                        →
+                                        радиально п. 3631 м
+                                        →
+                                        дол. Карангыкол
+                                        →
+                                        пер. Карангы Нижний (1А, 2975 м)
+                                        →
+                                        дол. Шаукол
+                                        →
+
+                                        пер. Шаукол
+                                        (н/к, 2&nbsp;926&nbsp;м)
+                                        →
+                                        д.р. Ташорун
+                                        →
+                                        д.р. Суарык
+                                        →
+
+                                        пер. Суарык
+                                        (1Б, 3&nbsp;227&nbsp;м)
+                                        →
+                                        д.р. Джугуртау
+                                        →
+                                        д.р. Кыртык
+                                        →
+                                        пос. верх Баксан
+
+                                    </span>
+                                </div>
+                                <div class="sobject-nbsp">&nbsp;<span class="sobject__nbsp-2">&nbsp;</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="object__tabbed-item object__tabbed-item--more">
+                            <a class="link link--dashed link--border-closer show-more" href="#"
+                                data-load-container="#tab-trips-6 .object__tabbed-list"><i
+                                    class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="object__tabbed object__tabbed--hstat object__block object__block--grey-light" id="region-heightest">
+        <div class="object__tabbed-title object__block-title">
+            Высочайшие вершины и&nbsp;перевалы
+        </div>
+        <div class="object__tabbed-content">
+            <nav class="tabs tabs--inline tabs-js">
+                <div class="tabs__inner tabs-fixed-center scroll-in-start scroll-in-end">
+                    <div class="tabs__scroll tabs-fixed-center-scroll">
+                        <div class="tabs__scroll-inner">
+                            <ul>
+                                <li class="active">
+                                    <a href="#" data-tab-selector="#tab-heightest-objects-1">
+                                        <div class="object__tabbed-category">
+                                            Вершины
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" data-tab-selector="#tab-heightest-objects-2">
+                                        <div class="object__tabbed-category">
+                                            Перевалы
+                                        </div>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="tab-panes">
+                <div id="tab-heightest-objects-1" class="tab-pane  active ">
+                    <div class="object__tabbed-list  object__tabbed-list--columns object__tabbed-list--type-1"
+                        data-scroll-load-page="1"
+                        data-scroll-load-insert-before="#tab-heightest-objects-1 .object__tabbed-item--more"
+                        data-scroll-load-inactive-class="hidden"
+                        data-hide-on-last-load="#tab-heightest-objects-1 .object__tabbed-item--more"
+                        data-scroll-load-url="1">
+                        <div class="object__tabbed-item">
+                            <div
+                                class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                <div class="sobject" data-latlng="43.352457,42.437902" data-id="3824"><span
+                                        class="sobject__prefix">1.&nbsp;</span><a
+                                        href="/web/20241008170156/https://pereval.online/object/3824"
+                                        class="sobject__link">г. Эльбрус</a><span class="sobject__params">
+                                        (5&nbsp;642&nbsp;м)<i
+                                            class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="Есть координаты"></i><i
+                                            class="far fa-image tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="212 фотографий"><sup> 212</sup></i><i
+                                            class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="34 отчёта"><sup> 34</sup></i></span></div>
+                                <div class="sobject-nbsp">&nbsp;</div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                <div id="tab-heightest-objects-2" class="tab-pane ">
+                    <div class="object__tabbed-list  object__tabbed-list--columns object__tabbed-list--type-2"
+                        data-scroll-load-page="1"
+                        data-scroll-load-insert-before="#tab-heightest-objects-2 .object__tabbed-item--more"
+                        data-scroll-load-inactive-class="hidden"
+                        data-hide-on-last-load="#tab-heightest-objects-2 .object__tabbed-item--more"
+                        data-scroll-load-url="2">
+                        <div class="object__tabbed-item">
+                            <div
+                                class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                <div class="sobject" data-latlng="43.352222,42.447616" data-id="3109"><span
+                                        class="sobject__prefix">1.&nbsp;</span><a
+                                        href="/web/20241008170156/https://pereval.online/object/3109"
+                                        class="sobject__link">пер. Седловина Эльбруса</a><span class="sobject__params">
+                                        (2А*, 5&nbsp;416&nbsp;м)<i
+                                            class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="Есть координаты"></i><i
+                                            class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            data-title="26 отчётов"><sup> 26</sup></i></span></div>
+                                <div class="sobject-nbsp">&nbsp;</div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
