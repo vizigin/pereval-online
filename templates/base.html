@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Перевал.Online &mdash; каталог перевалов, вершин, ледников</title>
+    <meta name="description" content="Перевалы и вершины на карте с описанием. Удобный поиск и каталог.">
+    <meta property="og:description" content="Перевалы и вершины на карте с описанием. Удобный поиск и каталог."/>
+    <meta property="og:locale" content="ru_RU"/>
+    <meta property="og:title" content="Перевал.Online"/>
+    <meta property="og:site_name" content="Перевал.Online"/>
+    <meta property="og:image" content="img/homepage-1024.jpg"/>
+    <meta name="twitter:description" content="Перевалы и вершины на карте с описанием. Удобный поиск и каталог."/>
+    <meta name="csrf-token" content="">
+    <meta name="turbolinks-cache-control" content="no-cache">
+    <link rel="stylesheet" href="/css/build.css">
+    <link rel="stylesheet" href="/css/fontawesome-all.min.css">
+    <script src="/js/build.js"></script>
+    <script src="/js/build-noncritical.js" defer></script>
+    <style>
+        body { scroll-behavior: smooth; }
+        .tab-pane.active { pointer-events: auto; visibility: visible; }
+        .tab-pane { pointer-events: none; visibility: hidden; }
+        *:focus-visible { outline: 2px solid #000; outline-offset: 3px; outline-style: revert; }
+        .tabs a:focus-visible, .sobject-wrapper--oneline .sobject a:focus-visible { outline-offset: -1px; }
+        .skip-to-main-content { position: fixed; z-index: 10; top: 0; left: 50%; transform: translate(-50%, -100%); background: #fff; padding: 10px 15px; border-radius: 0 0 8px 8px; text-decoration-thickness: from-font; transition: transform 0.3s; }
+        .skip-to-main-content:focus { transform: translate(-50%, 0); }
+    </style>
+</head>
+<body class="w-loginbar page-homepage">
+    <a class="skip-to-main-content js-skip-to-content" href="#main">
+        Перейти к основному контенту
+    </a>
+    <div class="wrap ">
+        {% include "aside.html" %}
+        <main id="main" class="main">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    <!-- футер и скрипты -->
+</body>
+</html> 

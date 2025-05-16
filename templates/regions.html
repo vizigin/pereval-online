@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.content {
+    padding-left: 40px;
+    padding-right: 40px;
+    padding-bottom: 50px;
+    padding-top: 30px;
+}
+</style>
+<div class="object__block object__block--nomargin object__block--marginbneg">
+    
+    <div class="region">
+        <h1>Список районов</h1>
+        <div class="region__main">
+            <div class="region__list">
+                <nav class="menu-list menu-list--nolink">
+                    <ul>
+                        {% for region in regions %}
+                        <li>
+                            <a href="/region/{{ region.id }}">
+                                <span class="link">{{ region.name }}</span>&nbsp;<span class="color-muted-strong font-smaller">({{ region.count }})</span>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

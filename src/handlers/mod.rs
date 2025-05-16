@@ -8,6 +8,8 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, types::BigDecimal};
 use tower_http::services::ServeFile;
+use askama::Template;
+use axum::response::Html;
 
 use crate::{
     error::AppError,
@@ -36,10 +38,38 @@ pub struct Stats {
     trips: i64,
 }
 
+#[derive(Template)]
+#[template(path = "index.html")]
+pub struct IndexTemplate {
+    pub regions: Vec<RegionInfo>,
+}
+
+#[derive(Template)]
+#[template(path = "regions.html")]
+pub struct RegionsTemplate {
+    pub regions: Vec<RegionInfo>,
+}
+
+#[derive(Template)]
+#[template(path = "search.html")]
+pub struct SearchTemplate {
+    pub regions: Vec<RegionInfo>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct RegionInfo {
+    pub id: i32,
+    pub name: String,
+    pub count: i64,
+}
+
 pub fn router() -> Router<PgPool> {
     Router::new()
+        .route("/", get(index_handler))
+        .route("/regions", get(regions_handler))
+        .route("/search", get(search_handler))
         .route("/stats", get(get_stats))
-        .route("/regions", get(list_regions).post(create_region))
+        .route("/api/regions", get(list_regions).post(create_region))
         .route("/regions/:id", get(get_region))
         .route("/objects", get(list_objects).post(create_object))
         .route("/objects/:id", get(get_object))
@@ -47,7 +77,43 @@ pub fn router() -> Router<PgPool> {
         .route("/trips/:id", get(get_trip))
         .route("/photos", get(list_photos).post(create_photo))
         .route("/photos/:id", get(get_photo))
-        .nest_service("/", ServeFile::new("static/index2.html"))
+}
+
+async fn get_regions_with_count(pool: &PgPool) -> Vec<RegionInfo> {
+    let rows = sqlx::query!(
+        r#"
+        SELECT r.id, r.name, COUNT(o.id) as count
+        FROM regions r
+        LEFT JOIN objects o ON o.region_id = r.id
+        WHERE r.id IN (33, 144, 336, 290, 314, 1, 28, 442, 506, 27, 25, 434, 484, 496, 325, 26, 472, 501, 324, 476, 485, 491, 492, 495, 514)
+        GROUP BY r.id, r.name
+        ORDER BY count DESC, r.name
+        "#
+    )
+    .fetch_all(pool)
+    .await
+    .unwrap_or_default();
+
+    rows.into_iter().map(|row| RegionInfo {
+        id: row.id,
+        name: row.name,
+        count: row.count.unwrap_or(0),
+    }).collect()
+}
+
+async fn index_handler(State(pool): State<PgPool>) -> Html<String> {
+    let regions = get_regions_with_count(&pool).await;
+    Html(IndexTemplate { regions }.render().unwrap())
+}
+
+async fn regions_handler(State(pool): State<PgPool>) -> Result<Html<String>, axum::http::StatusCode> {
+    let regions = get_regions_with_count(&pool).await;
+    Ok(Html(RegionsTemplate { regions }.render().unwrap()))
+}
+
+async fn search_handler(State(pool): State<PgPool>) -> Html<String> {
+    let regions = get_regions_with_count(&pool).await;
+    Html(SearchTemplate { regions }.render().unwrap())
 }
 
 async fn get_stats(

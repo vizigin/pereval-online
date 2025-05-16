@@ -10,6 +10,7 @@ use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use dotenv;
+use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -39,6 +40,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Build application with routes
     let app = Router::new()
         .merge(handlers::router())
+        .nest_service("/css", ServeDir::new("static/css"))
+        .nest_service("/js", ServeDir::new("static/js"))
+        .nest_service("/img", ServeDir::new("static/img"))
+        .nest_service("/fonts", ServeDir::new("static/fonts"))
         .layer(TraceLayer::new_for_http())
         .with_state(pool);
 

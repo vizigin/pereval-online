@@ -1,0 +1,308 @@
+<div class="aside compensate-for-scrollbar">
+    <div class="aside__crop">
+        <div class="brandbar">
+            <div class="brandbar__table">
+                <div class="brandbar__cell">
+                    <a href="/" class="logo"><span class="logo__inner">Перевал <span class="logo_2line">Online</span></span></a>
+                </div>
+                <div class="brandbar__cell">
+                    <a href="/regions" class="regions-switcher tooltip tooltip-notouch" title=""><i class="fas fa-globe-americas"></i></a>
+                    <div class="search-switcher js-search-switcher tablet-show-inline-block"><i class="fa fa-search"></i></div>
+                    <div class="menu-switcher js-menu-switcher"><span></span><span></span></div>
+                </div>
+            </div>
+        </div>
+        <div class="menu-overlay">
+            <div class="menu-overlay__scroll">
+                <nav class="menu-list">
+                    <ul>
+                        <li><a href="/">Главная</a></li>
+                        <li><a href="/regions">Районы</a></li>
+                        <li><a href="/about">О проекте</a></li>
+                        <li><a href="/help-us">Поможете нам?</a></li>
+                        <li><a href="/contacts">Контакты</a></li>
+                    </ul>
+                </nav>
+                <div class="menu-social">
+                    <p>Следите за&nbsp;новыми фишками:<br> <a href="https://vk.com/pereval.online" target="_blank" class="social-icon social-icon--vk"><img src="img/fa-vk.svg" alt="VK" style="width: 1em; height: 1em; vertical-align: middle;"></a></p>
+                </div>
+            </div>
+        </div>
+        <div class="aside__scroll">
+            <div class="aside__inner">
+                <noindex>
+                <nav class="tabs tabs--search tabs--equals tabs-js">
+                    <div class="tabs__inner tabs-fixed-center scroll-in-start scroll-in-end">
+                        <div class="tabs__scroll tabs-fixed-center-scroll">
+                            <div class="tabs__scroll-inner">
+                                <ul>
+                                    <li class="active"><a href="#tab-search-object"><i class="fas fa-map-marker-alt"></i> Объекты</a></li>
+                                    <li><a href="#tab-search-trip"><i class="far fa-file-alt"></i> Отчёты</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+                <div class="tab-panes">
+                    <div id="tab-search-object" class="tab-pane active">
+                        <form method="GET" action="/search" accept-charset="UTF-8" class="search-filter" id="form-search" data-turboform>
+                            <div class="form__items">
+                                <div class="form__item">
+                                    <div class="form__item-field">
+                                        <div class="textfield-wrapper">
+                                            <input class="textfield textfield--after-hide-if-reset js-autocomplete" placeholder=" " autocomplete="off" data-autocomplete-goto-url="true" data-autocomplete-appendto-parent="(max-width: 1023px)" data-autocomplete-url="/search/autocomplete" name="name" type="text">
+                                            <span class="textfield-placeholder">По названию</span>
+                                            <span class="textfield-reset"></span>
+                                            <span class="textfield-after pointer-events-none"><i class="fa fa-search"></i></span>
+                                        </div>
+                                        <div class="form__tip">Не надо указывать "пер." или "г."</div>
+                                    </div>
+                                </div>
+                                <div class="form__item">
+                                    <div class="form__item-field">
+                                        <select class="selectbox selectbox--fullwidth" multiple="multiple" data-placeholder="По району" data-selectbox-refreshable-url="/region/list" data-selectbox-allow-clear="true" data-selectbox-aggregate-min="3" name="region[]">
+                                            <option value="" label="По району"></option>
+                                            {% for region in regions %}
+                                            <option value="{{ region.id }}" data-html="{{ region.name }} <span class='font-smaller color-muted'>({{ region.count }})</span>">{{ region.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form__item form__item--type">
+                                    <div class="form__item-field">
+                                        <select class="selectbox selectbox--fullwidth" multiple="multiple" data-placeholder="По типу" data-selectbox-allow-clear="true" data-selectbox-aggregate-min="3" name="type[]">
+                                            <option value="" label="По типу"></option>
+                                            <option value="2">Перевал</option>
+                                            <option value="1">Вершина</option>
+                                            <option value="4">Ледник</option>
+                                            <option value="3">Объект инфраструктуры</option>
+                                            <option value="5">Объект природы</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form__item form__item--pass-complexity depends-on depends-on-toggle-class hidden-absolute" data-depends-on-options='{".search-filter .form__item--type select": {"contains": ["2"]}}'>
+                                    <div class="form__item-field">
+                                        <select class="selectbox selectbox--fullwidth" multiple="multiple" data-placeholder="По сложности перевалов" data-selectbox-allow-clear="true" data-selectbox-aggregate-min="9" name="pass_complexity[]">
+                                            <option value="н/к">н/к</option>
+                                            <option value="1А">1А</option>
+                                            <option value="1Б">1Б</option>
+                                            <option value="2А">2А</option>
+                                            <option value="2Б">2Б</option>
+                                            <option value="3А">3А</option>
+                                            <option value="3Б">3Б</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form__item form__item--pass-slope-type depends-on depends-on-toggle-class hidden-absolute" data-depends-on-options='{".search-filter .form__item--type select": {"contains": ["2"]}}'>
+                                    <div class="form__item-field">
+                                        <select class="selectbox selectbox--fullwidth" multiple="multiple" data-placeholder="По типу склона перевалов" data-selectbox-allow-clear="true" data-selectbox-aggregate-min="4" name="pass_slope_type[]">
+                                            <option value="дорога">дорога</option>
+                                            <option value="тропа">тропа</option>
+                                            <option value="лес">лес</option>
+                                            <option value="тр">травянистый</option>
+                                            <option value="ос">осыпной</option>
+                                            <option value="ск">скальный</option>
+                                            <option value="сн">снежный</option>
+                                            <option value="лд">ледовый</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form__item form__item--country">
+                                    <div class="form__item-field">
+                                        <select class="selectbox selectbox--fullwidth" multiple="multiple" data-placeholder="По стране и региону" data-selectbox-refreshable-url="/country/list" data-selectbox-allow-clear="true" data-selectbox-aggregate-min="3" data-selectbox-search="true" name="country[]">
+                                            <option value="" label="По стране и региону"></option>
+                                            <option value="RU" data-html="Россия <span class='font-smaller color-muted'>(7856)</span>">Россия</option>
+                                            <option value="KG" data-html="Киргизия <span class='font-smaller color-muted'>(2626)</span>">Киргизия</option>
+                                            <option value="TJ" data-html="Таджикистан <span class='font-smaller color-muted'>(1989)</span>">Таджикистан</option>
+                                            <option value="KZ" data-html="Казахстан <span class='font-smaller color-muted'>(1553)</span>">Казахстан</option>
+                                            <option value="GE" data-html="Грузия <span class='font-smaller color-muted'>(1242)</span>">Грузия</option>
+                                            <option value="CN" data-html="Китай <span class='font-smaller color-muted'>(750)</span>">Китай</option>
+                                            <option value="MN" data-html="Монголия <span class='font-smaller color-muted'>(638)</span>">Монголия</option>
+                                            <option value="AB" data-html="Абхазия <span class='font-smaller color-muted'>(291)</span>">Абхазия</option>
+                                            <option value="UZ" data-html="Узбекистан <span class='font-smaller color-muted'>(245)</span>">Узбекистан</option>
+                                            <option value="NP" data-html="Непал <span class='font-smaller color-muted'>(142)</span>">Непал</option>
+                                            <option value="OS" data-html="Южная Осетия <span class='font-smaller color-muted'>(70)</span>">Южная Осетия</option>
+                                            <option value="AZ" data-html="Азербайджан <span class='font-smaller color-muted'>(51)</span>">Азербайджан</option>
+                                            <option value="CH" data-html="Швейцария <span class='font-smaller color-muted'>(48)</span>">Швейцария</option>
+                                            <option value="IT" data-html="Италия <span class='font-smaller color-muted'>(40)</span>">Италия</option>
+                                            <option value="AF" data-html="Афганистан <span class='font-smaller color-muted'>(37)</span>">Афганистан</option>
+                                            <option value="AT" data-html="Австрия <span class='font-smaller color-muted'>(30)</span>">Австрия</option>
+                                            <option value="IN" data-html="Индия <span class='font-smaller color-muted'>(19)</span>">Индия</option>
+                                            <option value="PK" data-html="Пакистан <span class='font-smaller color-muted'>(18)</span>">Пакистан</option>
+                                            <option value="TR" data-html="Турция <span class='font-smaller color-muted'>(18)</span>">Турция</option>
+                                            <option value="FR" data-html="Франция <span class='font-smaller color-muted'>(10)</span>">Франция</option>
+                                            <option value="SI" data-html="Словения <span class='font-smaller color-muted'>(3)</span>">Словения</option>
+                                            <option value="UA" data-html="Украина <span class='font-smaller color-muted'>(1)</span>">Украина</option>
+                                            <option value="IQ" data-html="Ирак <span class='font-smaller color-muted'>(0)</span>">Ирак</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form__item">
+                                    <div class="form__item-field">
+                                        <select class="selectbox selectbox--fullwidth" multiple="multiple" data-placeholder="До госграницы" data-selectbox-allow-clear="true" data-selectbox-aggregate-min="2" name="border_distance[]">
+                                            <option value="" label="До госграницы"></option>
+                                            <option value="20000:">более 20 км</option>
+                                            <option value="10000:20000">от 10 до 20 км</option>
+                                            <option value="5000:10000">от 5 до 10 км</option>
+                                            <option value="1000:5000">от 1 до 5 км</option>
+                                            <option value="100:1000">от 100 м до 1 км</option>
+                                            <option value="0:100">менее 100 м</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form__item form__item--options">
+                                    <div class="form__item-field">
+                                        <div class="checkboxes">
+                                            <div class="checkbox-wrapper">
+                                                <label class="checkbox checkbox-plain-js">
+                                                    <input name="coords" type="checkbox" value="1">
+                                                    <span class="checkbox__icon"></span>
+                                                    с координатами
+                                                </label>
+                                            </div>
+                                            <div class="checkbox-wrapper">
+                                                <label class="checkbox checkbox-plain-js">
+                                                    <input name="images" type="checkbox" value="1">
+                                                    <span class="checkbox__icon"></span>
+                                                    с фотографиями
+                                                </label>
+                                            </div>
+                                            <div class="checkbox-wrapper">
+                                                <label class="checkbox checkbox-plain-js">
+                                                    <input name="trips" type="checkbox" value="1">
+                                                    <span class="checkbox__icon"></span>
+                                                    с отчётами
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form__actions text-align-center">
+                                <button class="btn btn--primary" type="submit"><i class="fa fa-search"></i><span>Найти</span></button>
+                            </div>
+                            <input class="js-input-submit-on-change" id="search-sort" name="sort" type="hidden">
+                        </form>
+                    </div>
+                    <div id="tab-search-trip" class="tab-pane">
+                        <form method="GET" action="/search/trip" accept-charset="UTF-8" class="search-filter form-validate" id="form-search-trip" data-turboform>
+                            <div class="form__items">
+                                <div class="form__item">
+                                    <div class="form__item-field">
+                                        <div class="textfield-wrapper">
+                                            <input class="textfield textfield--after-hide-if-reset" placeholder=" " autocomplete="off" name="trip_path" type="text">
+                                            <span class="textfield-placeholder">По объектам маршрута</span>
+                                            <span class="textfield-reset"></span>
+                                        </div>
+                                        <div class="form__tip">Через запятую. Не указывать "пер." или "г."</div>
+                                    </div>
+                                </div>
+                                <div class="form__item">
+                                    <div class="form__item-field">
+                                        <select class="selectbox selectbox--fullwidth" multiple="multiple" data-placeholder="По району" data-selectbox-allow-clear="true" data-selectbox-aggregate-min="3" name="trip_region[]">
+                                            <option value="" label="По району"></option>
+                                            {% for region in regions %}
+                                            <option value="{{ region.id }}" data-html="{{ region.name }} <span class='font-smaller color-muted'>({{ region.count }})</span>">{{ region.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form__item">
+                                    <div class="form__item-field">
+                                        <select class="selectbox selectbox--fullwidth" multiple="multiple" data-placeholder="По типу похода" data-selectbox-allow-clear="true" data-selectbox-aggregate-min="2" name="trip_type[]">
+                                            <option value=""></option>
+                                            <option value="1">Горный</option>
+                                            <option value="2">Пеший</option>
+                                            <option value="3">Лыжный</option>
+                                            <option value="4">Велосипедный</option>
+                                            <option value="6">Горно-пеший</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form__item">
+                                    <div class="form__item-field">
+                                        <select class="selectbox selectbox--fullwidth" multiple="multiple" data-placeholder="Категория трудности" data-selectbox-allow-clear="true" data-selectbox-aggregate-min="9" name="trip_category[]">
+                                            <option value=""></option>
+                                            <option value="0">Без категории</option>
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5</option>
+                                            <option value="6">6</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form__item">
+                                    <div class="form__item-field">
+                                        <div class="cols-w">
+                                            <div class="cols">
+                                                <div class="col">
+                                                    <div class="textfield-wrapper textfield-wrapper--placeholder-top">
+                                                        <input id="search-trip-year-min" class="textfield mask-pint textfield--after-hide-if-reset" placeholder="1938" autocomplete="off" maxlength="4" data-rule-range="[1938,2024]" data-msg-range="Есть отчёты только с 1938 до 2024 года." data-rule-lessthanequal="#search-trip-year-max" data-msg-lessthanequal="2-й год должен быть ≤ 1-му году." name="trip_year[min]" type="text">
+                                                        <span class="textfield-placeholder">С</span>
+                                                        <span class="textfield-reset"></span>
+                                                    </div>
+                                                </div>
+                                                <div class="col">
+                                                    <div class="textfield-wrapper textfield-wrapper--placeholder-top">
+                                                        <input id="search-trip-year-max" class="textfield mask-pint textfield--after-hide-if-reset" placeholder="2024" autocomplete="off" maxlength="4" data-rule-range="[1938,2024]" data-msg-range="Есть отчёты только с 1938 до 2024 года." name="trip_year[max]" type="text">
+                                                        <span class="textfield-placeholder">До</span>
+                                                        <span class="textfield-reset"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form__item">
+                                    <div class="form__item-field">
+                                        <select class="selectbox selectbox--fullwidth" multiple="multiple" data-placeholder="Сезон" data-selectbox-allow-clear="true" data-selectbox-aggregate-min="3" name="trip_month[]">
+                                            <option value=""></option>
+                                            <option value="0">Январь</option>
+                                            <option value="1">Февраль</option>
+                                            <option value="2">Март</option>
+                                            <option value="3">Апрель</option>
+                                            <option value="4">Май</option>
+                                            <option value="5">Июнь</option>
+                                            <option value="6">Июль</option>
+                                            <option value="7">Август</option>
+                                            <option value="8">Сентябрь</option>
+                                            <option value="9">Октябрь</option>
+                                            <option value="10">Ноябрь</option>
+                                            <option value="11">Декабрь</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form__item">
+                                    <div class="form__item-field">
+                                        <div class="textfield-wrapper">
+                                            <input class="textfield textfield--after-hide-if-reset" placeholder=" " autocomplete="off" name="trip_author" type="text">
+                                            <span class="textfield-placeholder">По автору</span>
+                                            <span class="textfield-reset"></span>
+                                        </div>
+                                        <div class="form__tip">Лучше только по фамилии</div>
+                                    </div>
+                                </div>
+                                <div class="form__item">
+                                    <div class="form__item-field">
+                                        <div class="textfield-wrapper">
+                                            <input class="textfield textfield--after-hide-if-reset" placeholder=" " autocomplete="off" name="trip_city" type="text">
+                                            <span class="textfield-placeholder">По городу автора</span>
+                                            <span class="textfield-reset"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form__actions text-align-center">
+                                <button class="btn btn--primary" type="submit"><i class="fa fa-search"></i><span>Найти</span></button>
+                            </div>
+                            <input class="js-input-submit-on-change" id="search-trip-sort" name="sort" type="hidden">
+                        </form>
+                    </div>
+                </div>
+                </noindex>
+            </div>
+        </div>
+    </div>
+</div> 

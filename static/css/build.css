@@ -5974,6 +5974,7 @@ Brandbar
   margin-left: 20px;
 }
 
+
 .regions-switcher:first-child {
   margin-left: 0;
 }
@@ -6786,7 +6787,7 @@ Menu
 }
 
 .region {
-  margin-top: 20px;
+  margin: 30px;
 }
 
 .region:first-child {
