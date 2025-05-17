@@ -393,6 +393,11 @@ class DataImporter:
                             coords_text = text
 
             lat, lon = parse_coordinates(coords_text) if coords_text else (None, None)
+            # Ограничиваем координаты до 5 знаков после запятой
+            if lat is not None:
+                lat = round(lat, 5)
+            if lon is not None:
+                lon = round(lon, 5)
 
             # Extract height with a prioritized search order
             height = None
@@ -509,9 +514,9 @@ class DataImporter:
             # Try breadcrumbs first
             breadcrumbs = soup.find('div', class_='breadcrumb')
             if breadcrumbs:
-                region_links = breadcrumbs.find_all('a')
-                if len(region_links) >= 2:  # Usually second link is region
-                    region = region_links[1].text.strip()
+                region_links = [a for a in breadcrumbs.find_all('a') if '/region/' in a.get('href', '')]
+                if region_links:
+                    region = region_links[-1].text.strip()
                     # Try to find region ID
                     for rid, rdata in self.regions.items():
                         if rdata['name'] == region:
@@ -529,6 +534,21 @@ class DataImporter:
                                 break
                         if region:
                             break
+
+            if object_id == 1069:
+                print(f"DEBUG 1069: region_id={region_id}, region='{region}'")
+
+            # --- Новые поля из HTML ---
+            # Источник информации
+            info_source = None
+            prev_next_div = soup.find('div', class_='object__prev-next')
+            if prev_next_div:
+                info_source = prev_next_div.get_text(strip=True)
+            # Дата обновления
+            updated_at = None
+            updated_div = soup.find('div', class_='object__updated')
+            if updated_div:
+                updated_at = updated_div.get_text(strip=True)
 
             # --- Новые поля ---
             # Альтернативные названия
@@ -626,8 +646,6 @@ class DataImporter:
                         glacier_history = text
                         break
 
-            # --- Конец новых полей ---
-
             # Collect results with validation
             result = {
                 'id': object_id,
@@ -642,14 +660,16 @@ class DataImporter:
                 'height': height,
                 'area': area,
                 'description': description,
-                'is_verified': False,  # Default to False, can be updated later
+                'is_verified': False,  # Default to False, can be updated later,
                 'complexity': complexity,
                 'slope_type': slope_type,
                 'border_distance': border_distance,
                 'alt_names': alt_names,
                 'category': category,
                 'connects': connects,
-                'glacier_history': glacier_history
+                'glacier_history': glacier_history,
+                'info_source': info_source,
+                'updated_at': updated_at
             }
 
             # Validate required fields
@@ -865,51 +885,82 @@ class DataImporter:
             current_id = region.get('parent_id')
         return None
 
+    def parse_regions_from_breadcrumbs(self, directory):
+        """Собрать все уникальные регионы и их иерархию из breadcrumbs объектов и походов."""
+        region_map = {}  # name -> id
+        next_id = 1
+        parent_map = {}  # id -> parent_id
+        # Сначала объекты
+        object_files = glob.glob(os.path.join(directory, '_recepient/pereval.online/object', '*', 'index.html'))
+        for object_file in object_files:
+            with open(object_file, 'r', encoding='utf-8') as f:
+                soup = BeautifulSoup(f.read(), 'html.parser')
+            breadcrumbs = soup.find('div', class_='breadcrumb')
+            if breadcrumbs:
+                parent_id = None
+                for a in breadcrumbs.find_all('a'):
+                    href = a.get('href', '')
+                    if '/region/' in href:
+                        name = a.text.strip()
+                        if name not in region_map:
+                            region_map[name] = next_id
+                            self.regions[next_id] = {'id': next_id, 'name': name, 'parent_id': parent_id, 'root_region_id': None}
+                            parent_map[next_id] = parent_id
+                            parent_id = next_id
+                            next_id += 1
+                        else:
+                            parent_id = region_map[name]
+        # Теперь походы
+        trip_files = glob.glob(os.path.join(directory, '_recepient/pereval.online/trip', '*', 'index.html'))
+        for trip_file in trip_files:
+            with open(trip_file, 'r', encoding='utf-8') as f:
+                soup = BeautifulSoup(f.read(), 'html.parser')
+            breadcrumbs = soup.find('div', class_='breadcrumb')
+            if breadcrumbs:
+                parent_id = None
+                for a in breadcrumbs.find_all('a'):
+                    href = a.get('href', '')
+                    if '/region/' in href:
+                        name = a.text.strip()
+                        if name not in region_map:
+                            region_map[name] = next_id
+                            self.regions[next_id] = {'id': next_id, 'name': name, 'parent_id': parent_id, 'root_region_id': None}
+                            parent_map[next_id] = parent_id
+                            parent_id = next_id
+                            next_id += 1
+                        else:
+                            parent_id = region_map[name]
+
     def scan_directory(self, directory):
-        """Scan directory for HTML files and parse them"""
         print(f"Scanning directory: {directory}")  # Debug output
-        
-        # Process regions
-        region_files = glob.glob(os.path.join(directory, 'region', '*', 'index.html'))
-        print(f"Found {len(region_files)} region files")  # Debug output
-        
-        for region_file in region_files:
-            print(f"Processing region file: {region_file}")  # Debug output
-            with open(region_file, 'r', encoding='utf-8') as f:
-                region_data = self.parse_region(f.read(), region_file)
-                if region_data:
-                    self.regions[region_data['id']] = region_data
-                    print(f"Added region: {region_data['name']} (ID: {region_data['id']})")  # Debug output
-        
-        # Process objects
-        object_files = glob.glob(os.path.join(directory, 'object', '*', 'index.html'))
+        # Удаляем парсинг regions
+        # Сначала собираем регионы из breadcrumbs
+        self.parse_regions_from_breadcrumbs(directory)
+        print(f"Parsed {len(self.regions)} regions from breadcrumbs")
+        # Далее всё как раньше: объекты, trips, фото
+        object_files = glob.glob(os.path.join(directory, '_recepient/pereval.online/object', '*', 'index.html'))
         print(f"Found {len(object_files)} object files")  # Debug output
-        
-        # Limit to first 50 objects
         object_files = object_files[:50]
         print(f"Processing first 50 object files")  # Debug output
-        
+        object_ids = []
         for object_file in object_files:
             print(f"Processing object file: {object_file}")  # Debug output
-            # Convert string path to Path object
             object_path = Path(object_file)
             object_data = self.parse_object(object_path)
             if object_data:
+                object_ids.append(object_data['id'])
                 if object_data['id'] == 1069:
                     logging.info(f"[OBJECT_STORE_DEBUG] id=1069 name='{object_data['name']}' height={object_data['height']} from='{object_path}' (before store)")
                 if object_data['id'] in self.objects:
                     logging.info(f"[OBJECT_OVERWRITE_DEBUG] id={object_data['id']} name='{object_data['name']}' height={object_data['height']} from='{object_path}' (overwriting existing object)")
                 self.objects[object_data['id']] = object_data
                 print(f"Added object: {object_data['name']} (ID: {object_data['id']})")  # Debug output
-        
+        print(f"Imported object IDs: {object_ids}")  # Debug output
         # Process trips
-        trip_files = glob.glob(os.path.join(directory, 'trip', '*', 'index.html'))
+        trip_files = glob.glob(os.path.join(directory, '_recepient/pereval.online/trip', '*', 'index.html'))
         print(f"Found {len(trip_files)} trip files")  # Debug output
-        
-        # Limit to first 50 trips
         trip_files = trip_files[:50]
         print(f"Processing first 50 trip files")  # Debug output
-        
         for trip_file in trip_files:
             print(f"Processing trip file: {trip_file}")  # Debug output
             with open(trip_file, 'r', encoding='utf-8') as f:
@@ -917,11 +968,9 @@ class DataImporter:
                 if trip_data:
                     self.trips[trip_data['id']] = trip_data
                     print(f"Added trip: {trip_data['title']} (ID: {trip_data['id']})")  # Debug output
-        
         # Process photos
-        photo_files = glob.glob(os.path.join(directory, 'photo', '*', 'index.html'))
+        photo_files = glob.glob(os.path.join(directory, '_recepient/pereval.online/photo', '*', 'index.html'))
         print(f"Found {len(photo_files)} photo files")  # Debug output
-        
         for photo_file in photo_files:
             print(f"Processing photo file: {photo_file}")  # Debug output
             with open(photo_file, 'r', encoding='utf-8') as f:
@@ -986,11 +1035,12 @@ class DataImporter:
             type_str = object_type_reverse.get(obj['type_id'], None)
             logging.info(f"[SQL GENERATE] id={obj['id']} name={obj['name']} height={obj.get('height')}")
             sql.append(f"""INSERT INTO objects (id, name, type, region_id, country_code, country_full, parent_id, height, \
-                latitude, longitude, description, border_distance)
+                latitude, longitude, description, border_distance, info_source, updated_at)
                 VALUES ({obj['id']}, {self.sql_value(obj['name'])}, {self.sql_value(type_str)}, {self.sql_value(obj['region_id'])}, {self.sql_value(obj.get('country_code'))}, {self.sql_value(obj.get('country_full'))}, \
                 {self.sql_value(obj.get('parent_id'))}, {self.sql_value(obj.get('height'))}, \
                 {self.sql_value(obj.get('latitude'))}, {self.sql_value(obj.get('longitude'))}, \
-                {self.sql_value(obj.get('description'))}, {self.sql_value(obj.get('border_distance'))});""")
+                {self.sql_value(obj.get('description'))}, {self.sql_value(obj.get('border_distance'))}, \
+                {self.sql_value(obj.get('info_source'))}, {self.sql_value(obj.get('updated_at'))});""")
             print(f"Generated SQL for object: {obj['name']}")  # Debug output
         
         # Add trips

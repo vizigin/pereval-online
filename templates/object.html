@@ -5,16 +5,10 @@
 
         <div
             class="breadcrumb breadcrumb--fixed touch-focused disable-prevent-link-clicks compensate-for-scrollbar no-scrollbar">
-            <a href="/web/20240910073152/https://pereval.online/regions">Все районы</a> /
-            <!--
-        --><a href="/web/20240910073152/https://pereval.online/region/33">Кавказ</a><!--
-    --><!--
-        --> / <a href="/web/20240910073152/https://pereval.online/region/98">Центральный Кавказ</a><!--
-    --><!--
-        --> / <a href="/web/20240910073152/https://pereval.online/region/131">Приэльбрусье</a><!--
-    --><!--
-    --> / <!--
-    --><a href="/web/20240910073152/https://pereval.online/region/137">Эльбрус и его отроги</a>
+            <a href="/regions">Все районы</a>
+            {% for region in object.region_breadcrumbs %}
+                / <a href="/regions/{{ region.id }}">{{ region.name }}</a>
+            {% endfor %}
             <div class="breadcrumb__toggler"></div>
         </div>
         <div class="breadcrumb-replace"></div>
@@ -92,7 +86,17 @@
                             <div class="object__param">
                                 <div class="object__param-row">
                                     <span class="object__param-title">GPS:</span>
-                                    <span class="object__param-value">43.32561, 42.67434</span>
+                                    <span class="object__param-value">
+                                        {% if object.lat.is_some() %}
+                                            {% if object.lng.is_some() %}
+                                                {{ object.lat.as_ref().unwrap() }}, {{ object.lng.as_ref().unwrap() }}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </span>
                                 </div>
                             </div>
 
@@ -100,11 +104,19 @@
                                 <div class="object__param-row">
                                     <span class="object__param-title">Google Maps:</span>
                                     <span class="object__param-value">
-                                        <a class="btn btn--xcompact btn--near btn--small tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                            data-title="Вид в Google Earth с пролётом вокруг объекта"
-                                            data-tooltipster="{&quot;side&quot;: &quot;top&quot;}"
-                                            href="https://web.archive.org/web/20240910073152/https://earth.google.com/web/@43.32561,42.67434,-500a,0d,35y,180h,70t,0r/data=KAI"
-                                            target="_blank">Вид в 3D 360°</a>
+                                        {% if object.lat.is_some() %}
+                                            {% if object.lng.is_some() %}
+                                                <a class="btn btn--xcompact btn--near btn--small tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Вид в Google Earth с пролётом вокруг объекта"
+                                                    data-tooltipster="{&quot;side&quot;: &quot;top&quot;}"
+                                                    href="https://earth.google.com/web/@{{ object.lat.as_ref().unwrap() }},{{ object.lng.as_ref().unwrap() }},500a,0d,35y,180h,70t,0r/data=KAI"
+                                                    target="_blank">Вид в 3D 360°</a>
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        {% else %}
+                                            —
+                                        {% endif %}
                                     </span>
                                 </div>
                             </div>
@@ -120,421 +132,19 @@
                 </div>
 
                 <div class="object__prev-next">
-                    <p>Чаще всего туристы попадают на оз. Сылтранкёль с <span class="font-normal">р.Сылтрансу</span> или
-                        <a class="font-normal" href="/web/20240910073152/https://pereval.online/object/3227">пер.
-                            Сылтран (н/к)</a>, а уходят с озера в сторону <a class="font-normal"
-                            href="/web/20240910073152/https://pereval.online/object/3227">пер. Сылтран (н/к)</a> или <a
-                            class="font-normal" href="/web/20240910073152/https://pereval.online/object/1943">пер. Грач
-                            Нижний (1Б)</a>.<br><span class="font-small color-muted">Информация сформирована на основе
-                            анализа технических отчётов.</span>
-                    </p>
+                    {% if object.info_source.is_some() %}
+                        {{ object.info_source.as_ref().unwrap() }}
+                    {% endif %}
                 </div>
 
                 <div class="object__meta">
-                    <div class="object__updated">
-                        Обновлено:<br class="mobile-small-show-inline"> <span
-                            class="object__updated-value">22.07.2021</span>
-                    </div>
-                </div>
-
-
-                <div class="object__tabbed object__block object__block--grey-light object__block--bordered">
-                    <div class="object__tabbed-title object__block-title">
-                        Ближайшие объекты
-                        <span class="object__block-title-suffix nowrap">в&nbsp;радиусе 10&nbsp;км</span>
-                    </div>
-                    <div class="object__tabbed-content">
-                        <nav class="tabs tabs--inline tabs-js">
-                            <div class="tabs__inner tabs-fixed-center scroll-in-start scroll-in-end">
-                                <div class="tabs__scroll tabs-fixed-center-scroll">
-                                    <div class="tabs__scroll-inner">
-                                        <ul>
-                                            <li class="active">
-                                                <a href="#" data-tab-selector="#tab-nearest-objects-1">
-                                                    <div class="object__tabbed-category">
-                                                        Вершины
-                                                    </div>
-                                                </a>
-                                            </li>
-                                            <li class="">
-                                                <a href="#" data-tab-selector="#tab-nearest-objects-2">
-                                                    <div class="object__tabbed-category">
-                                                        Перевалы
-                                                    </div>
-                                                </a>
-                                            </li>
-                                            <li class="">
-                                                <a href="#" data-tab-selector="#tab-nearest-objects-4">
-                                                    <div class="object__tabbed-category">
-                                                        Ледники
-                                                    </div>
-                                                </a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </nav>
-
-                        <div class="tab-panes">
-                            <div id="tab-nearest-objects-1" class="tab-pane active">
-                                <div class="object__tabbed-list  object__tabbed-list--type-1" data-scroll-load-page="1"
-                                    data-scroll-load-insert-before="#tab-nearest-objects-1 .object__tabbed-item--more"
-                                    data-scroll-load-inactive-class="hidden"
-                                    data-hide-on-last-load="#tab-nearest-objects-1 .object__tabbed-item--more"
-                                    data-scroll-load-url="/object/1056/nearest/more/1">
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.088796,80.410573" data-id="1203"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/1203"
-                                                    class="sobject__link">г. Маяк</a><span class="sobject__params">
-                                                    (4&nbsp;162&nbsp;м, 2.7&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.112329,80.462542" data-id="1426"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/1426"
-                                                    class="sobject__link">г. Щукина</a><span class="sobject__params">
-                                                    (3.8&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.086083,80.361415" data-id="1198"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/1198"
-                                                    class="sobject__link">г. Макарова</a><span class="sobject__params">
-                                                    (5&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.13109,80.48694" data-id="20552"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/20552"
-                                                    class="sobject__link">г. 4291</a><span class="sobject__params">
-                                                    (4&nbsp;291&nbsp;м, 6.1&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.067237,80.311675" data-id="1272"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/1272"
-                                                    class="sobject__link">п. Перевальный</a><span
-                                                    class="sobject__params"> (9.4&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="tab-nearest-objects-2" class="tab-pane">
-                                <div class="object__tabbed-list  object__tabbed-list--type-2" data-scroll-load-page="1"
-                                    data-scroll-load-insert-before="#tab-nearest-objects-2 .object__tabbed-item--more"
-                                    data-scroll-load-inactive-class="hidden"
-                                    data-hide-on-last-load="#tab-nearest-objects-2 .object__tabbed-item--more"
-                                    data-scroll-load-url="/object/1056/nearest/more/2">
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.116829,80.447142" data-id="965"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/965"
-                                                    class="sobject__link">пер. 50 лет НГУ</a><span
-                                                    class="sobject__params"> (2А, 3&nbsp;950&nbsp;м, 2.7&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.100728,80.446294" data-id="1029"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/1029"
-                                                    class="sobject__link">пер. Баскан большой</a><span
-                                                    class="sobject__params"> (3&nbsp;941&nbsp;м, 2.9&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.14058,80.430447" data-id="941"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/941"
-                                                    class="sobject__link">пер. 16 Февраля</a><span
-                                                    class="sobject__params"> (1Б, 3.3&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.082675,80.440436" data-id="1030"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/1030"
-                                                    class="sobject__link">пер. Баскан малый</a><span
-                                                    class="sobject__params"> (1А, 3&nbsp;801&nbsp;м, 4&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.119829,80.482175" data-id="1152"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/1152"
-                                                    class="sobject__link">пер. Китайцев</a><span
-                                                    class="sobject__params"> (5.4&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.149086,80.469128" data-id="1151"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/1151"
-                                                    class="sobject__link">пер. Китайская Стена</a><span
-                                                    class="sobject__params"> (1Б, 3&nbsp;500&nbsp;м, 5.9&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i><i
-                                                        class="far fa-image tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="1 фотография"><sup> 1</sup></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.120959,80.494611" data-id="1036"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/1036"
-                                                    class="sobject__link">пер. Берга</a><span class="sobject__params">
-                                                    (3А, 6.4&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.080284,80.338925" data-id="958"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/958"
-                                                    class="sobject__link">пер. 3540</a><span class="sobject__params">
-                                                    (3&nbsp;540&nbsp;м, 6.8&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.108577,80.304184" data-id="1058"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/1058"
-                                                    class="sobject__link">пер. Влюбленных Монтажников</a><span
-                                                    class="sobject__params"> (1б-2а, 3&nbsp;450&nbsp;м, 8.5&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.066067,80.304851" data-id="1249"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/1249"
-                                                    class="sobject__link">пер. Перевальный</a><span
-                                                    class="sobject__params"> (3&nbsp;890&nbsp;м, 9.9&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="tab-nearest-objects-4" class="tab-pane">
-                                <div class="object__tabbed-list  object__tabbed-list--type-4" data-scroll-load-page="1"
-                                    data-scroll-load-insert-before="#tab-nearest-objects-4 .object__tabbed-item--more"
-                                    data-scroll-load-inactive-class="hidden"
-                                    data-hide-on-last-load="#tab-nearest-objects-4 .object__tabbed-item--more"
-                                    data-scroll-load-url="/object/1056/nearest/more/4">
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.108263,80.434207" data-id="19701"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/19701"
-                                                    class="sobject__link">лед. Щукина</a><span class="sobject__params">
-                                                    (1.7&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.126901,80.447776" data-id="19419"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/19419"
-                                                    class="sobject__link">лед. Сатпаева</a><span
-                                                    class="sobject__params"> (3.1&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.096147,80.451155" data-id="19499"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/19499"
-                                                    class="sobject__link">лед. CN5Y746I0006</a><span
-                                                    class="sobject__params"> (3.5&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.100451,80.464901" data-id="19424"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/19424"
-                                                    class="sobject__link">лед. CN5Y746I0007</a><span
-                                                    class="sobject__params"> (4.2&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.149654,80.461638" data-id="19826"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/19826"
-                                                    class="sobject__link">Ледник</a><span class="sobject__params">
-                                                    (5.5&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.116094,80.484238" data-id="19889"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/19889"
-                                                    class="sobject__link">лед. CN5Y746I0009</a><span
-                                                    class="sobject__params"> (5.5&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.086124,80.344821" data-id="19706"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/19706"
-                                                    class="sobject__link">лед. Маркова</a><span class="sobject__params">
-                                                    (6.1&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.152571,80.481953" data-id="19387"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/19387"
-                                                    class="sobject__link">лед. Калесника</a><span
-                                                    class="sobject__params"> (6.9&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.066567,80.336518" data-id="20469"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/20469"
-                                                    class="sobject__link">Ледник</a><span class="sobject__params">
-                                                    (7.9&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.078581,80.322853" data-id="20073"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/20073"
-                                                    class="sobject__link">лед. Герасимова</a><span
-                                                    class="sobject__params"> (8&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.124669,80.523891" data-id="20254"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/20254"
-                                                    class="sobject__link">лед. Берга</a><span class="sobject__params">
-                                                    (8.7&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.079141,80.311686" data-id="20380"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/20380"
-                                                    class="sobject__link">Ледник</a><span class="sobject__params">
-                                                    (8.8&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item object__tabbed-item--more">
-                                        <a class="link link--dashed link--border-closer show-more" href="#"
-                                            data-load-container="#tab-nearest-objects-4 .object__tabbed-list"><i
-                                                class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
-                                    </div>
-                                </div>
-                            </div>
+                    {% if object.updated_at.is_some() %}
+                        <div class="object__updated">
+                            {{ object.updated_at.as_ref().unwrap() }}
                         </div>
-                    </div>
+                    {% endif %}
                 </div>
+
 
                 <div class="object__tabbed object__block object__block--grey-light object__block--bordered">
                     <div class="object__tabbed-title object__block-title">
@@ -567,7 +177,6 @@
                                 </div>
                             </div>
                         </nav>
-
 
                         <div class="tab-panes">
                             <div id="tab-trips-1" class="tab-pane  active ">
@@ -740,6 +349,114 @@
                                         </div>
                                     </div>
                                     <!-- ... (другие табы и элементы) ... -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="object__tabbed object__block object__block--grey-light object__block--bordered">
+                    <div class="object__tabbed-title object__block-title">
+                        Ближайшие объекты
+                        <span class="object__block-title-suffix nowrap">в&nbsp;радиусе 10&nbsp;км</span>
+                    </div>
+                    <div class="object__tabbed-content">
+                        <nav class="tabs tabs--inline tabs-js">
+                            <div class="tabs__inner tabs-fixed-center scroll-in-start scroll-in-end">
+                                <div class="tabs__scroll tabs-fixed-center-scroll">
+                                    <div class="tabs__scroll-inner">
+                                        <ul>
+                                            <li class="active">
+                                                <a href="#" data-tab-selector="#tab-nearest-objects-1">
+                                                    <div class="object__tabbed-category">
+                                                        Вершины
+                                                    </div>
+                                                </a>
+                                            </li>
+                                            <li class="">
+                                                <a href="#" data-tab-selector="#tab-nearest-objects-2">
+                                                    <div class="object__tabbed-category">
+                                                        Перевалы
+                                                    </div>
+                                                </a>
+                                            </li>
+                                            <li class="">
+                                                <a href="#" data-tab-selector="#tab-nearest-objects-4">
+                                                    <div class="object__tabbed-category">
+                                                        Ледники
+                                                    </div>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </nav>
+
+                        <div class="tab-panes">
+                            <div id="tab-nearest-objects-1" class="tab-pane active">
+                                <div class="object__tabbed-list  object__tabbed-list--type-1" data-scroll-load-page="1"
+                                    data-scroll-load-insert-before="#tab-nearest-objects-1 .object__tabbed-item--more"
+                                    data-scroll-load-inactive-class="hidden"
+                                    data-hide-on-last-load="#tab-nearest-objects-1 .object__tabbed-item--more"
+                                    data-scroll-load-url="/object/1056/nearest/more/1">
+                                    <div class="object__tabbed-item">
+                                        <div
+                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                            <div class="sobject" data-latlng="45.088796,80.410573" data-id="1203"><a
+                                                    href="/web/20241204062700/https://pereval.online/object/1203"
+                                                    class="sobject__link">г. Маяк</a><span class="sobject__params">
+                                                    (4&nbsp;162&nbsp;м, 2.7&nbsp;км)<i
+                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                        data-title="Есть координаты"></i></span></div>
+                                            <div class="sobject-nbsp">&nbsp;</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="tab-nearest-objects-2" class="tab-pane">
+                                <div class="object__tabbed-list  object__tabbed-list--type-2" data-scroll-load-page="1"
+                                    data-scroll-load-insert-before="#tab-nearest-objects-2 .object__tabbed-item--more"
+                                    data-scroll-load-inactive-class="hidden"
+                                    data-hide-on-last-load="#tab-nearest-objects-2 .object__tabbed-item--more"
+                                    data-scroll-load-url="/object/1056/nearest/more/2">
+                                    <div class="object__tabbed-item">
+                                        <div
+                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                            <div class="sobject" data-latlng="45.116829,80.447142" data-id="965"><a
+                                                    href="/web/20241204062700/https://pereval.online/object/965"
+                                                    class="sobject__link">пер. 50 лет НГУ</a><span
+                                                    class="sobject__params"> (2А, 3&nbsp;950&nbsp;м, 2.7&nbsp;км)<i
+                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                        data-title="Есть координаты"></i></span></div>
+                                            <div class="sobject-nbsp">&nbsp;</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="tab-nearest-objects-4" class="tab-pane">
+                                <div class="object__tabbed-list  object__tabbed-list--type-4" data-scroll-load-page="1"
+                                    data-scroll-load-insert-before="#tab-nearest-objects-4 .object__tabbed-item--more"
+                                    data-scroll-load-inactive-class="hidden"
+                                    data-hide-on-last-load="#tab-nearest-objects-4 .object__tabbed-item--more"
+                                    data-scroll-load-url="/object/1056/nearest/more/4">
+                                    <div class="object__tabbed-item">
+                                        <div
+                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                            <div class="sobject" data-latlng="45.108263,80.434207" data-id="19701"><a
+                                                    href="/web/20241204062700/https://pereval.online/object/19701"
+                                                    class="sobject__link">лед. Щукина</a><span class="sobject__params">
+                                                    (1.7&nbsp;км)<i
+                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                        data-title="Есть координаты"></i></span></div>
+                                            <div class="sobject-nbsp">&nbsp;</div>
+                                        </div>
+                                    </div>
+                                    <div class="object__tabbed-item object__tabbed-item--more">
+                                        <a class="link link--dashed link--border-closer show-more" href="#"
+                                            data-load-container="#tab-nearest-objects-4 .object__tabbed-list"><i
+                                                class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
+                                    </div>
                                 </div>
                             </div>
                         </div>

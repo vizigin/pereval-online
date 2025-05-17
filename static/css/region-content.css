@@ -1,5 +1,5 @@
 /* region-content.css — только для блока .content и вложенных */
-.content {
+/*.content {
     max-width: 1200px;
     margin: 0 auto;
     padding: 24px 16px 0 16px;
@@ -10,11 +10,6 @@
     font-family: "Open Sans", Tahoma, Arial, Helvetica, sans-serif;
     font-size: 16px;
     color: #222;
-}
-.content h1 {
-    font-size: 2.2em;
-    margin: 0 0 24px 0;
-    font-weight: 700;
 }
 .content .region__types ul {
     display: flex;
@@ -123,4 +118,4 @@
 .content .object-height {
     color: #666;
     font-size: 0.95em;
-} 
+} */

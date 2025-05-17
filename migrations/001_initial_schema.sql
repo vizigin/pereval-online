@@ -26,6 +26,8 @@ CREATE TABLE objects (
     complexity TEXT,
     slope_type TEXT,
     border_distance DECIMAL(9,3),
+    info_source TEXT,
+    updated_at TEXT,
     alt_names TEXT,
     category TEXT,
     connects TEXT,

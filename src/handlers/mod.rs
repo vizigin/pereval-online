@@ -107,6 +107,12 @@ pub struct ObjectTemplate {
 }
 
 #[derive(Debug, Serialize)]
+pub struct RegionBreadcrumb {
+    pub id: i32,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize)]
 pub struct ObjectTemplateData {
     pub id: i32,
     pub name: String,
@@ -120,6 +126,9 @@ pub struct ObjectTemplateData {
     pub country: Option<String>,
     pub full_address: Option<String>,
     pub border_distance: Option<f64>,
+    pub region_breadcrumbs: Vec<RegionBreadcrumb>,
+    pub info_source: Option<String>,
+    pub updated_at: Option<String>,
 }
 
 // Кастомный фильтр для форматирования числа с пробелами между тысячами
@@ -437,8 +446,8 @@ async fn get_object(
 ) -> Result<impl IntoResponse, AppError> {
     let object = sqlx::query!(
         r#"
-        SELECT o.id, o.name, o.type as "type!", o.region_id, o.parent_id, o.height,
-               o.latitude, o.longitude, o.description, o.alt_names, r.name as region_name, o.country_code, o.country_full, o.border_distance
+        SELECT o.id, o.name, o.type as "type!", o.region_id as "region_id?", o.parent_id, o.height,
+               o.latitude, o.longitude, o.description, o.alt_names, r.name as region_name, o.country_code, o.country_full, o.border_distance, o.info_source, o.updated_at
         FROM objects o
         LEFT JOIN regions r ON o.region_id = r.id
         WHERE o.id = $1
@@ -449,9 +458,36 @@ async fn get_object(
     .await?
     .ok_or_else(|| AppError::NotFound(format!("Object {} not found", id)))?;
 
-    println!("DEBUG: object.country_full = {:?}", object.country_full);
     let lat = object.latitude.map(|v| v.to_string());
     let lng = object.longitude.map(|v| v.to_string());
+
+    // Получаем все регионы с parent_id
+    let regions: Vec<(i32, String, Option<i32>)> = sqlx::query_as!(
+        RegionWithParent,
+        "SELECT id, name, parent_id FROM regions"
+    )
+    .fetch_all(&pool)
+    .await?
+    .into_iter()
+    .map(|r| (r.id, r.name, r.parent_id))
+    .collect();
+
+    fn build_region_breadcrumbs(region_id: Option<i32>, regions: &[(i32, String, Option<i32>)]) -> Vec<RegionBreadcrumb> {
+        let mut breadcrumbs = Vec::new();
+        let mut current_id = region_id;
+        while let Some(rid) = current_id {
+            if let Some((id, name, parent_id)) = regions.iter().find(|(id, _, _)| *id == rid) {
+                breadcrumbs.push(RegionBreadcrumb { id: *id, name: name.clone() });
+                current_id = *parent_id;
+            } else {
+                break;
+            }
+        }
+        breadcrumbs.reverse();
+        breadcrumbs
+    }
+
+    let region_breadcrumbs = build_region_breadcrumbs(object.region_id, &regions);
 
     let data = ObjectTemplateData {
         id: object.id,
@@ -466,10 +502,21 @@ async fn get_object(
         country: object.country_code,
         full_address: object.country_full,
         border_distance: object.border_distance.and_then(|v| v.to_f64()),
+        region_breadcrumbs,
+        info_source: object.info_source,
+        updated_at: object.updated_at,
     };
 
-    let regions = get_regions_with_count(&pool).await;
-    Ok(Html(ObjectTemplate { object: data, regions }.render().unwrap()))
+    let regions_for_aside = get_regions_with_count(&pool).await;
+    Ok(Html(ObjectTemplate { object: data, regions: regions_for_aside }.render().unwrap()))
+}
+
+// Для sqlx::query_as!
+#[derive(sqlx::FromRow)]
+struct RegionWithParent {
+    id: i32,
+    name: String,
+    parent_id: Option<i32>,
 }
 
 async fn create_object(
