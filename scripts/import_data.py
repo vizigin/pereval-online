@@ -20,6 +20,34 @@ logging.basicConfig(
     ]
 )
 
+# --- Вынесенная функция парсинга высоты ---
+def parse_height(text: str) -> Optional[int]:
+    if not text:
+        return None
+    # Clean up the text
+    text = re.sub(r'\s+', ' ', text.strip().lower())
+    # Убираем пробелы внутри числа (например, '3 923' -> '3923')
+    text = re.sub(r'(\d)\s+(\d)', r'\1\2', text)
+    # Try different height formats
+    patterns = [
+        (r'(\d+)\s*м(?:\s*над\s*у\.?\s*м\.?)?', 1),  # 5000 м над у.м.
+        (r'высота:\s*(\d+)(?:\s*м)?', 1),  # высота: 5000
+        (r'(\d+)\s*метров(?:\s*над\s*у\.?\s*м\.?)?', 1),  # 5000 метров
+        (r'(\d+)\s*над\s*у\.?\s*м\.?', 1),  # 5000 над у.м.
+        (r'(\d+)\s*м\.?\s*н\.?\s*у\.?\s*м\.?', 1),  # 5000 м.н.у.м.
+        (r'(\d+)\s*м\.?\s*над\s*уровнем\s*моря', 1)  # 5000 м над уровнем моря
+    ]
+    for pattern, multiplier in patterns:
+        match = re.search(pattern, text)
+        if match:
+            try:
+                height = int(match.group(1)) * multiplier
+                if 0 <= height <= 9000:  # Reasonable height range
+                    return height
+            except ValueError:
+                continue
+    return None
+
 class DataImporter:
     MAIN_REGIONS = {
         33, 144, 336, 290, 314, 1, 28, 442, 506, 27, 25, 434, 484, 496, 325, 26, 472, 501, 324, 476, 485, 491, 492, 495, 514
@@ -182,18 +210,11 @@ class DataImporter:
                             print(f"Warning: Could not find parent_id for region {name} (ID: {region_id})")
                         break
         
-        # Extract country code
-        country_elem = soup.find('div', class_='country')
-        country_code = None
-        if country_elem:
-            country_code = country_elem.text.strip()
-        
-        # Create region data
+        # country_code убираем из регионов
         region_data = {
             'id': region_id,
             'name': name,
             'parent_id': parent_id,
-            'country_code': country_code,
             'root_region_id': None  # Will be set after all regions are parsed
         }
         
@@ -221,8 +242,8 @@ class DataImporter:
             title_elem = soup.find('h1')
             if title_elem:
                 title = title_elem.text.strip()
-                # Remove common prefixes/suffixes that might be in the title
-                title = re.sub(r'^(Перевал|Вершина|Ледник|Приют|База|Лагерь|Хижина|Озеро|Река|Водопад|Пещера)\s+', '', title)
+                # Не удаляем тип из названия, сохраняем как есть
+                # title = re.sub(r'^(Перевал|Вершина|Ледник|Приют|База|Лагерь|Хижина|Озеро|Река|Водопад|Пещера)\s+', '', title)
                 title = re.sub(r'\s*-\s*[^-]+$', '', title)  # Remove everything after last dash
             if not title:
                 logging.error(f"Missing or invalid title in {html_path}")
@@ -352,65 +373,6 @@ class DataImporter:
                 
                 return None, None
 
-            # Improved height parsing
-            def parse_height(text: str) -> Optional[int]:
-                if not text:
-                    return None
-                
-                # Clean up the text
-                text = re.sub(r'\s+', ' ', text.strip().lower())
-                
-                # Try different height formats
-                patterns = [
-                    (r'(\d+)\s*м(?:\s*над\s*у\.?\s*м\.?)?', 1),  # 5000 м над у.м.
-                    (r'высота:\s*(\d+)(?:\s*м)?', 1),  # высота: 5000
-                    (r'(\d+)\s*метров(?:\s*над\s*у\.?\s*м\.?)?', 1),  # 5000 метров
-                    (r'(\d+)\s*над\s*у\.?\s*м\.?', 1),  # 5000 над у.м.
-                    (r'(\d+)\s*м\.?\s*н\.?\s*у\.?\s*м\.?', 1),  # 5000 м.н.у.м.
-                    (r'(\d+)\s*м\.?\s*над\s*уровнем\s*моря', 1)  # 5000 м над уровнем моря
-                ]
-                
-                for pattern, multiplier in patterns:
-                    match = re.search(pattern, text)
-                    if match:
-                        try:
-                            height = int(match.group(1)) * multiplier
-                            if 0 <= height <= 9000:  # Reasonable height range
-                                return height
-                        except ValueError:
-                            continue
-                
-                return None
-
-            # Improved area parsing
-            def parse_area(text: str) -> Optional[float]:
-                if not text:
-                    return None
-                
-                # Clean up the text
-                text = re.sub(r'\s+', ' ', text.strip().lower())
-                
-                # Try different area formats
-                patterns = [
-                    (r'(\d+\.?\d*)\s*км²', 1.0),  # 10.5 км²
-                    (r'(\d+\.?\d*)\s*кв\.?\s*км', 1.0),  # 10.5 кв. км
-                    (r'площадь:\s*(\d+\.?\d*)(?:\s*км²)?', 1.0),  # площадь: 10.5
-                    (r'(\d+\.?\d*)\s*квадратных\s*километров', 1.0),  # 10.5 квадратных километров
-                    (r'(\d+\.?\d*)\s*га', 0.01)  # 10.5 га (convert to km²)
-                ]
-                
-                for pattern, multiplier in patterns:
-                    match = re.search(pattern, text)
-                    if match:
-                        try:
-                            area = float(match.group(1)) * multiplier
-                            if 0 <= area <= 10000:  # Reasonable area range
-                                return area
-                        except ValueError:
-                            continue
-                
-                return None
-
             # Extract coordinates with improved search
             coords_text = None
             # First try dedicated coordinate table
@@ -432,19 +394,38 @@ class DataImporter:
 
             lat, lon = parse_coordinates(coords_text) if coords_text else (None, None)
 
-            # Extract height with improved search
+            # Extract height with a prioritized search order
             height = None
-            height_table = soup.find('table', class_='height')
-            if height_table:
-                height = parse_height(height_table.get_text())
-            else:
-                # Try to find height in text with context
-                for p in soup.find_all(['p', 'div']):
-                    text = p.get_text()
-                    if 'м' in text or 'метров' in text or 'высота' in text.lower():
-                        height = parse_height(text)
-                        if height:
-                            break
+
+            # 1. Try specific 'object__params' block first (most reliable)
+            params_div = soup.find('div', class_='object__params')
+            if params_div:
+                for param in params_div.find_all('div', class_='object__param'):
+                    title_span = param.find('span', class_='object__param-title')
+                    value_span = param.find('span', class_='object__param-value')
+                    if title_span and value_span and 'высота' in title_span.get_text(strip=True).lower():
+                        h_candidate = parse_height(value_span.get_text())
+                        if h_candidate is not None:
+                            height = h_candidate
+                            break # Found height in object__params
+            
+            # 2. If not found in object__params, try 'table.height'
+            if height is None:
+                height_table = soup.find('table', class_='height')
+                if height_table:
+                    h_candidate = parse_height(height_table.get_text())
+                    if h_candidate is not None:
+                        height = h_candidate
+
+            # 3. If still not found, try generic p/div search as a last resort
+            if height is None:
+                for p_tag in soup.find_all(['p', 'div']):
+                    text_content = p_tag.get_text()
+                    if 'м' in text_content or 'метров' in text_content or 'высота' in text_content.lower():
+                        h_candidate = parse_height(text_content)
+                        if h_candidate is not None:
+                            height = h_candidate
+                            break # Found height in generic search
 
             # Extract area with improved search
             area = None
@@ -491,18 +472,50 @@ class DataImporter:
             # Extract region with improved search
             region = None
             region_id = None
+            # --- Парсинг страны из блока object__country ---
             country_code = None
+            country_full = None
+            country_div = soup.find('div', class_='object__country')
+            if country_div:
+                country_text = country_div.get_text(separator=' ', strip=True)
+                # Форматируем: убираем пробелы вокруг запятых
+                country_text = re.sub(r'\s*,\s*', ', ', country_text)
+                country_full = country_text  # Сохраняем полный текст
+                country_name = country_text.split(',')[0].strip()
+                country_map = {
+                    'Россия': 'RU', 'Russian Federation': 'RU', 'Russia': 'RU',
+                    'Казахстан': 'KZ', 'Kazakhstan': 'KZ',
+                    'Киргизия': 'KG', 'Кыргызстан': 'KG', 'Kyrgyzstan': 'KG',
+                    'Грузия': 'GE', 'Georgia': 'GE',
+                    'Таджикистан': 'TJ', 'Tajikistan': 'TJ',
+                    'Узбекистан': 'UZ', 'Uzbekistan': 'UZ',
+                    'Монголия': 'MN', 'Mongolia': 'MN',
+                    'Китай': 'CN', 'China': 'CN',
+                    'Абхазия': 'GE', 'Abkhazia': 'GE',
+                    'Армения': 'AM', 'Armenia': 'AM',
+                    'Турция': 'TR', 'Turkey': 'TR',
+                    'Азербайджан': 'AZ', 'Azerbaijan': 'AZ',
+                    'Иран': 'IR', 'Iran': 'IR',
+                    'Афганистан': 'AF', 'Afghanistan': 'AF',
+                    'Пакистан': 'PK', 'Pakistan': 'PK',
+                    'Индия': 'IN', 'India': 'IN',
+                }
+                code = country_map.get(country_name)
+                if code:
+                    country_code = code
+                else:
+                    country_code = country_name
+            # --- Конец парсинга страны ---
             # Try breadcrumbs first
             breadcrumbs = soup.find('div', class_='breadcrumb')
             if breadcrumbs:
                 region_links = breadcrumbs.find_all('a')
                 if len(region_links) >= 2:  # Usually second link is region
                     region = region_links[1].text.strip()
-                    # Try to find region ID and country code
+                    # Try to find region ID
                     for rid, rdata in self.regions.items():
                         if rdata['name'] == region:
                             region_id = rid
-                            country_code = rdata.get('country_code')
                             break
             # If not found in breadcrumbs, try content
             if not region:
@@ -513,16 +526,107 @@ class DataImporter:
                             if rdata['name'].lower() in text:
                                 region = rdata['name']
                                 region_id = rid
-                                country_code = rdata.get('country_code')
                                 break
                         if region:
                             break
 
-            # Try to get country code from meta tags if not found from region
-            if not country_code:
-                meta_country = soup.find('meta', attrs={'name': 'country'})
-                if meta_country:
-                    country_code = meta_country.get('content')
+            # --- Новые поля ---
+            # Альтернативные названия
+            alt_names = None
+            alt_names_elem = soup.find('div', class_='alt-names')
+            if alt_names_elem:
+                alt_names = alt_names_elem.get_text(strip=True)
+            else:
+                # Пробуем искать в тексте
+                for p in soup.find_all(['p', 'div']):
+                    text = p.get_text().lower()
+                    if 'другое название' in text or 'также известен' in text or 'альтернативное название' in text:
+                        alt_names = text
+                        break
+
+            # Категория (для перевалов)
+            category = None
+            if object_type == 1:  # Перевал
+                for p in soup.find_all(['p', 'div']):
+                    text = p.get_text().lower()
+                    if 'категория' in text:
+                        m = re.search(r'категория[:\s]*([\w\d\-]+)', text)
+                        if m:
+                            category = m.group(1)
+                            break
+
+            # Тип склона (для перевалов)
+            slope_type = None
+            if object_type == 1:
+                for p in soup.find_all(['p', 'div']):
+                    text = p.get_text().lower()
+                    if 'тип склона' in text:
+                        m = re.search(r'тип склона[:\s]*([\w\d\- ]+)', text)
+                        if m:
+                            slope_type = m.group(1)
+                            break
+
+            # Что соединяет (для перевалов)
+            connects = None
+            if object_type == 1:
+                for p in soup.find_all(['p', 'div']):
+                    text = p.get_text().lower()
+                    if 'соединяет' in text:
+                        m = re.search(r'соединяет[:\s]*([\w\d\-, ]+)', text)
+                        if m:
+                            connects = m.group(1)
+                            break
+
+            # Сложность (для перевалов)
+            complexity = None
+            if object_type == 1:
+                for p in soup.find_all(['p', 'div']):
+                    text = p.get_text().lower()
+                    if 'сложность' in text:
+                        m = re.search(r'сложность[:\s]*([\w\d\- ]+)', text)
+                        if m:
+                            complexity = m.group(1)
+                            break
+
+            # Расстояние до границы (ищем по ключевым словам)
+            border_distance = None
+            for p in soup.find_all(['p', 'div']):
+                text = p.get_text().lower()
+                if 'граница' in text and ('расстояние' in text or 'до границы' in text):
+                    # Ищем формулировки типа 'менее 3.2 км', 'менее 250 м', 'до границы менее 3.2 км'
+                    m = re.search(r'менее\s*([\d\.,]+)\s*км', text)
+                    if m:
+                        try:
+                            border_distance = float(m.group(1).replace(',', '.'))
+                        except ValueError:
+                            pass
+                        break
+                    m = re.search(r'менее\s*([\d\.,]+)\s*м', text)
+                    if m:
+                        try:
+                            border_distance = float(m.group(1).replace(',', '.')) / 1000.0
+                        except ValueError:
+                            pass
+                        break
+                    # Старый вариант (оставляем для совместимости)
+                    m = re.search(r'расстояние до границы[:\s]*([\d\.,]+)', text)
+                    if m:
+                        try:
+                            border_distance = float(m.group(1).replace(',', '.'))
+                        except ValueError:
+                            pass
+                        break
+
+            # История ледника (для ледников)
+            glacier_history = None
+            if object_type == 5:  # Ледник
+                for p in soup.find_all(['p', 'div']):
+                    text = p.get_text().lower()
+                    if 'история' in text and 'ледник' in text:
+                        glacier_history = text
+                        break
+
+            # --- Конец новых полей ---
 
             # Collect results with validation
             result = {
@@ -532,15 +636,20 @@ class DataImporter:
                 'region': region,
                 'region_id': region_id,
                 'country_code': country_code,
+                'country_full': country_full,
                 'latitude': lat,
                 'longitude': lon,
                 'height': height,
                 'area': area,
                 'description': description,
                 'is_verified': False,  # Default to False, can be updated later
-                'complexity': None,
-                'slope_type': None,
-                'border_distance': None
+                'complexity': complexity,
+                'slope_type': slope_type,
+                'border_distance': border_distance,
+                'alt_names': alt_names,
+                'category': category,
+                'connects': connects,
+                'glacier_history': glacier_history
             }
 
             # Validate required fields
@@ -556,6 +665,9 @@ class DataImporter:
             if not result['region']:
                 logging.warning(f"Missing region for {html_path}")
 
+            logging.info(f"[OBJECT FINAL] id={result['id']} name={result['name']} height={result['height']}")
+            if not result['height']:
+                logging.warning(f"[DEBUG] HEIGHT NOT FOUND for id={result['id']} name={result['name']} in {html_path}")
             return result
 
         except Exception as e:
@@ -783,6 +895,10 @@ class DataImporter:
             object_path = Path(object_file)
             object_data = self.parse_object(object_path)
             if object_data:
+                if object_data['id'] == 1069:
+                    logging.info(f"[OBJECT_STORE_DEBUG] id=1069 name='{object_data['name']}' height={object_data['height']} from='{object_path}' (before store)")
+                if object_data['id'] in self.objects:
+                    logging.info(f"[OBJECT_OVERWRITE_DEBUG] id={object_data['id']} name='{object_data['name']}' height={object_data['height']} from='{object_path}' (overwriting existing object)")
                 self.objects[object_data['id']] = object_data
                 print(f"Added object: {object_data['name']} (ID: {object_data['id']})")  # Debug output
         
@@ -838,9 +954,8 @@ class DataImporter:
         
         # First, insert all regions with NULL parent_id and root_region_id
         for region in self.regions.values():
-            sql.append(f"""INSERT INTO regions (id, name, parent_id, country_code, root_region_id)
-                VALUES ({region['id']}, {self.sql_value(region['name'])}, NULL, 
-                {self.sql_value(region['country_code'])}, NULL);""")
+            sql.append(f"""INSERT INTO regions (id, name, parent_id, root_region_id)
+                VALUES ({region['id']}, {self.sql_value(region['name'])}, NULL, NULL);""")
             print(f"Generated initial SQL for region: {region['name']}")  # Debug output
         
         # Then update parent relationships in a separate transaction
@@ -869,12 +984,13 @@ class DataImporter:
         # Add objects
         for obj in self.objects.values():
             type_str = object_type_reverse.get(obj['type_id'], None)
-            sql.append(f"""INSERT INTO objects (id, name, type, region_id, parent_id, height, 
-                latitude, longitude, description)
-                VALUES ({obj['id']}, {self.sql_value(obj['name'])}, {self.sql_value(type_str)}, {self.sql_value(obj['region_id'])}, 
-                {self.sql_value(obj.get('parent_id'))}, {self.sql_value(obj.get('height'))}, 
-                {self.sql_value(obj.get('latitude'))}, {self.sql_value(obj.get('longitude'))}, 
-                {self.sql_value(obj.get('description'))});""")
+            logging.info(f"[SQL GENERATE] id={obj['id']} name={obj['name']} height={obj.get('height')}")
+            sql.append(f"""INSERT INTO objects (id, name, type, region_id, country_code, country_full, parent_id, height, \
+                latitude, longitude, description, border_distance)
+                VALUES ({obj['id']}, {self.sql_value(obj['name'])}, {self.sql_value(type_str)}, {self.sql_value(obj['region_id'])}, {self.sql_value(obj.get('country_code'))}, {self.sql_value(obj.get('country_full'))}, \
+                {self.sql_value(obj.get('parent_id'))}, {self.sql_value(obj.get('height'))}, \
+                {self.sql_value(obj.get('latitude'))}, {self.sql_value(obj.get('longitude'))}, \
+                {self.sql_value(obj.get('description'))}, {self.sql_value(obj.get('border_distance'))});""")
             print(f"Generated SQL for object: {obj['name']}")  # Debug output
         
         # Add trips
@@ -914,7 +1030,7 @@ def main():
     sql = importer.generate_sql()
     
     # Write SQL to file
-    output_file = Path('migrations/002_import_data.sql')
+    output_file = Path('backend/migrations/002_import_data.sql')
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(sql)
     

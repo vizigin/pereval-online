@@ -10,6 +10,7 @@ use sqlx::{PgPool, types::BigDecimal};
 use tower_http::services::ServeFile;
 use askama::Template;
 use axum::response::Html;
+use num_traits::ToPrimitive;
 
 use crate::{
     error::AppError,
@@ -61,6 +62,78 @@ pub struct RegionInfo {
     pub id: i32,
     pub name: String,
     pub count: i64,
+}
+
+#[derive(Template)]
+#[template(path = "region.html")]
+pub struct RegionPageTemplate {
+    pub region: RegionInfo,
+    pub stats: RegionStats,
+    pub subregions: Vec<SubregionInfo>,
+    pub objects: Vec<ObjectInfo>,
+    pub active_type: String,
+    pub regions: Vec<RegionInfo>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct RegionStats {
+    pub passes: i64,
+    pub vertices: i64,
+    pub glaciers: i64,
+    pub infrastructure: i64,
+    pub nature: i64,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct SubregionInfo {
+    pub id: i32,
+    pub name: String,
+    pub count: i64,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct ObjectInfo {
+    pub id: i32,
+    pub name: String,
+    pub object_type: String,
+    pub height: Option<i32>,
+}
+
+#[derive(Template)]
+#[template(path = "object.html")]
+pub struct ObjectTemplate {
+    pub object: ObjectTemplateData,
+    pub regions: Vec<RegionInfo>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ObjectTemplateData {
+    pub id: i32,
+    pub name: String,
+    pub r_type: String,
+    pub region_name: Option<String>,
+    pub height: Option<i32>,
+    pub lat: Option<String>,
+    pub lng: Option<String>,
+    pub description: Option<String>,
+    pub alt_names: Option<String>,
+    pub country: Option<String>,
+    pub full_address: Option<String>,
+    pub border_distance: Option<f64>,
+}
+
+// Кастомный фильтр для форматирования числа с пробелами между тысячами
+pub fn format_number(value: &i32) -> String {
+    let s = value.to_string();
+    let mut out = String::new();
+    let chars = s.chars().rev().collect::<Vec<_>>();
+    for (i, c) in chars.iter().enumerate() {
+        if i > 0 && i % 3 == 0 {
+            out.push(' ');
+        }
+        out.push(*c);
+    }
+    out.chars().rev().collect()
 }
 
 pub fn router() -> Router<PgPool> {
@@ -188,21 +261,129 @@ async fn list_regions(
 async fn get_region(
     State(pool): State<PgPool>,
     Path(id): Path<i32>,
-) -> Result<impl IntoResponse, AppError> {
-    let region = sqlx::query_as!(
-        Region,
-        r#"
-        SELECT id, name, parent_id, country_code, root_region_id
-        FROM regions
-        WHERE id = $1
-        "#,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Html<String>, axum::http::StatusCode> {
+    // Получаем инфо о регионе
+    let region = sqlx::query!(
+        "SELECT id, name FROM regions WHERE id = $1",
         id
     )
     .fetch_optional(&pool)
-    .await?
-    .ok_or_else(|| AppError::NotFound(format!("Region {} not found", id)))?;
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+    .ok_or(axum::http::StatusCode::NOT_FOUND)?;
 
-    Ok(Json(region))
+    // Получаем статистику по типам объектов
+    let stats = sqlx::query!(
+        r#"
+        SELECT
+            COUNT(*) FILTER (WHERE type = 'Перевал') as passes,
+            COUNT(*) FILTER (WHERE type = 'Вершина') as vertices,
+            COUNT(*) FILTER (WHERE type = 'Ледник') as glaciers,
+            COUNT(*) FILTER (WHERE type = 'Инфраструктура') as infrastructure,
+            COUNT(*) FILTER (WHERE type = 'Природа') as nature
+        FROM objects WHERE region_id = $1
+        "#,
+        id
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let stats = RegionStats {
+        passes: stats.passes.unwrap_or(0),
+        vertices: stats.vertices.unwrap_or(0),
+        glaciers: stats.glaciers.unwrap_or(0),
+        infrastructure: stats.infrastructure.unwrap_or(0),
+        nature: stats.nature.unwrap_or(0),
+    };
+
+    // Получаем подрайоны (дочерние регионы)
+    let subregions = sqlx::query!(
+        r#"
+        SELECT r.id, r.name, COUNT(o.id) as count
+        FROM regions r
+        LEFT JOIN objects o ON o.region_id = r.id
+        WHERE r.parent_id = $1
+        GROUP BY r.id, r.name
+        ORDER BY count DESC, r.name
+        "#,
+        id
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+    .into_iter()
+    .map(|row| SubregionInfo {
+        id: row.id,
+        name: row.name,
+        count: row.count.unwrap_or(0),
+    })
+    .collect();
+
+    // Фильтр по типу объекта
+    let active_type = params.get("type").cloned().unwrap_or_else(|| "all".to_string());
+    let type_filter = match active_type.as_str() {
+        "pass" => Some("Перевал"),
+        "vertex" => Some("Вершина"),
+        "glacier" => Some("Ледник"),
+        "infrastructure" => Some("Инфраструктура"),
+        "nature" => Some("Природа"),
+        _ => None,
+    };
+
+    // Получаем объекты региона с фильтром по типу
+    let objects = if let Some(type_name) = type_filter {
+        sqlx::query!(
+            "SELECT id, name, type, height FROM objects WHERE region_id = $1 AND type = $2 ORDER BY name",
+            id, type_name
+        )
+        .fetch_all(&pool)
+        .await
+        .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+        .into_iter()
+        .map(|row| ObjectInfo {
+            id: row.id,
+            name: row.name,
+            object_type: row.r#type,
+            height: row.height,
+        })
+        .collect()
+    } else {
+        sqlx::query!(
+            "SELECT id, name, type, height FROM objects WHERE region_id = $1 ORDER BY name",
+            id
+        )
+        .fetch_all(&pool)
+        .await
+        .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+        .into_iter()
+        .map(|row| ObjectInfo {
+            id: row.id,
+            name: row.name,
+            object_type: row.r#type,
+            height: row.height,
+        })
+        .collect()
+    };
+
+    let region_info = RegionInfo {
+        id: region.id,
+        name: region.name,
+        count: 0, // не используется на этой странице
+    };
+
+    // Получаем список всех регионов для aside
+    let regions = get_regions_with_count(&pool).await;
+
+    Ok(Html(RegionPageTemplate {
+        region: region_info,
+        stats,
+        subregions,
+        objects,
+        active_type,
+        regions,
+    }.render().unwrap()))
 }
 
 async fn create_region(
@@ -254,13 +435,13 @@ async fn get_object(
     State(pool): State<PgPool>,
     Path(id): Path<i32>,
 ) -> Result<impl IntoResponse, AppError> {
-    let object = sqlx::query_as!(
-        Object,
+    let object = sqlx::query!(
         r#"
-        SELECT id, name, type as "type!", region_id, parent_id, height,
-               latitude, longitude, description
-        FROM objects
-        WHERE id = $1
+        SELECT o.id, o.name, o.type as "type!", o.region_id, o.parent_id, o.height,
+               o.latitude, o.longitude, o.description, o.alt_names, r.name as region_name, o.country_code, o.country_full, o.border_distance
+        FROM objects o
+        LEFT JOIN regions r ON o.region_id = r.id
+        WHERE o.id = $1
         "#,
         id
     )
@@ -268,7 +449,27 @@ async fn get_object(
     .await?
     .ok_or_else(|| AppError::NotFound(format!("Object {} not found", id)))?;
 
-    Ok(Json(object))
+    println!("DEBUG: object.country_full = {:?}", object.country_full);
+    let lat = object.latitude.map(|v| v.to_string());
+    let lng = object.longitude.map(|v| v.to_string());
+
+    let data = ObjectTemplateData {
+        id: object.id,
+        name: object.name,
+        r_type: object.r#type,
+        region_name: Some(object.region_name),
+        height: object.height,
+        lat,
+        lng,
+        description: object.description,
+        alt_names: object.alt_names,
+        country: object.country_code,
+        full_address: object.country_full,
+        border_distance: object.border_distance.and_then(|v| v.to_f64()),
+    };
+
+    let regions = get_regions_with_count(&pool).await;
+    Ok(Html(ObjectTemplate { object: data, regions }.render().unwrap()))
 }
 
 async fn create_object(

@@ -44,6 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest_service("/js", ServeDir::new("static/js"))
         .nest_service("/img", ServeDir::new("static/img"))
         .nest_service("/fonts", ServeDir::new("static/fonts"))
+        .nest_service("/static", ServeDir::new("static"))
         .layer(TraceLayer::new_for_http())
         .with_state(pool);
 

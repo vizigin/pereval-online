@@ -19,7 +19,7 @@ const MAX_RETRIES: u32 = 3; // Максимальное количество п�
 struct Object {
     id: i32,
     name: String,
-    object_type: String,
+    r#type: String,
     region: String,
     country: Option<String>,
     distance_to_border: Option<BigDecimal>,
@@ -283,7 +283,7 @@ async fn try_process_html_file(file_path: &Path) -> Result<Vec<Object>> {
         let object = Object {
             id,
             name,
-            object_type: determine_object_type(&params),
+            r#type: determine_type(&params),
             region: region.to_string(),
             country: determine_country(region),
             distance_to_border: extract_distance_to_border(&params),
@@ -327,13 +327,13 @@ async fn save_objects_batch(pool: &PgPool, objects: &[Object]) -> Result<()> {
                     if let Err(e) = sqlx::query!(
                         r#"
                         INSERT INTO objects (
-                            id, name, object_type, region, country,
+                            id, name, type, region, country,
                             distance_to_border, has_coordinates, has_photos, has_reports
                         )
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                         ON CONFLICT (id) DO UPDATE SET
                             name = EXCLUDED.name,
-                            object_type = EXCLUDED.object_type,
+                            type = EXCLUDED.type,
                             region = EXCLUDED.region,
                             country = EXCLUDED.country,
                             distance_to_border = EXCLUDED.distance_to_border,
@@ -344,7 +344,7 @@ async fn save_objects_batch(pool: &PgPool, objects: &[Object]) -> Result<()> {
                         "#,
                         object.id,
                         object.name,
-                        object.object_type,
+                        object.r#type,
                         object.region,
                         object.country,
                         object.distance_to_border,
@@ -384,7 +384,7 @@ async fn save_objects_batch(pool: &PgPool, objects: &[Object]) -> Result<()> {
     Ok(())
 }
 
-fn determine_object_type(params: &Option<String>) -> String {
+fn determine_type(params: &Option<String>) -> String {
     let params = match params {
         Some(p) => p,
         None => return "перевал".to_string(),

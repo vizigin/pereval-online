@@ -1,0 +1,126 @@
+/* region-content.css — только для блока .content и вложенных */
+.content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px 0 16px;
+    background: #fff;
+    min-height: 600px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border-radius: 8px;
+    font-family: "Open Sans", Tahoma, Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    color: #222;
+}
+.content h1 {
+    font-size: 2.2em;
+    margin: 0 0 24px 0;
+    font-weight: 700;
+}
+.content .region__types ul {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 16px 0;
+    padding: 0;
+    list-style: none;
+}
+.content .region__types li a {
+    display: block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    background: #f5f5f5;
+    color: #222;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+.content .region__types li a.active,
+.content .region__types li a:hover {
+    background: #e0eaff;
+    color: #0057b8;
+}
+.content .region__stats {
+    margin-bottom: 16px;
+    color: #666;
+    font-size: 0.95em;
+}
+.content .region__stats span {
+    margin-right: 16px;
+}
+.content .region__subregions {
+    margin-bottom: 20px;
+    font-size: 1em;
+}
+.content .region__subregions ul {
+    display: inline;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+.content .region__subregions li {
+    display: inline;
+    margin-right: 10px;
+}
+.content .region__tabs ul {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 16px 0;
+    padding: 0;
+    list-style: none;
+    border-bottom: 1px solid #e0e0e0;
+}
+.content .region__tabs li {
+    margin: 0;
+}
+.content .region__tabs a {
+    display: block;
+    padding: 8px 20px;
+    text-decoration: none;
+    color: #222;
+    border-radius: 8px 8px 0 0;
+    background: #f5f5f5;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+.content .region__tabs li.active a,
+.content .region__tabs a:hover {
+    background: #e0eaff;
+    color: #0057b8;
+}
+.content .region__content {
+    margin-top: 24px;
+}
+.content .object-list-title {
+    font-size: 1.3em;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+.content .object-list-desc {
+    color: #888;
+    font-size: 0.95em;
+    margin-bottom: 16px;
+}
+.content .object-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.content .object-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+.content .object-link {
+    color: #0057b8;
+    text-decoration: none;
+    font-weight: 500;
+}
+.content .object-type {
+    color: #888;
+    font-size: 0.95em;
+}
+.content .object-height {
+    color: #666;
+    font-size: 0.95em;
+} 

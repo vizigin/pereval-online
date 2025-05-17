@@ -49,7 +49,7 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn object_type(&self) -> Option<&str> {
+    pub fn r#type(&self) -> Option<&str> {
         type_id_to_string(self.r#type.parse::<i16>().unwrap())
     }
 
