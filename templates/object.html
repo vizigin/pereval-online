@@ -34,12 +34,11 @@
 
             <div class="object__country object__country--ru">
                 <div class="-flag">
-                    {% if object.country.is_some() %}
-                    <img class="img-flag" src="/static/flags/{{ object.country.as_ref().unwrap()|lower }}.png" alt="">
+                    {% if object.country_code.is_some() %}
+                    <img class="img-flag" src="/static/flags/{{ object.country_code.as_ref().unwrap()|lower }}.png" alt="">
                     {% endif %}
-                    {# DEBUG: full_address = {{ object.full_address }} #}
-                    {% if object.full_address.is_some() %}
-                    {{ object.full_address.as_ref().unwrap() }}
+                    {% if object.country_full.is_some() %}
+                    {{ object.country_full.as_ref().unwrap() }}
                     {% else %}
                     —
                     {% endif %}

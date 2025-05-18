@@ -12,6 +12,7 @@ use askama::Template;
 use axum::response::Html;
 use num_traits::ToPrimitive;
 use std::str::FromStr;
+use std::collections::HashMap;
 
 use crate::{
     error::AppError,
@@ -82,6 +83,8 @@ pub struct RegionPageTemplate {
     pub nature: Vec<ObjectInfo>,
     pub heightest_peaks: Vec<ObjectInfo>,
     pub heightest_passes: Vec<ObjectInfo>,
+    pub trips_tabs: ObjectTripsTabs,
+    pub trips_stats: RegionTripsStats,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -146,7 +149,6 @@ pub struct ObjectTemplateData {
     pub lng: Option<String>,
     pub description: Option<String>,
     pub alt_names: Option<String>,
-    pub country: Option<String>,
     pub full_address: Option<String>,
     pub border_distance: Option<f64>,
     pub region_breadcrumbs: Vec<RegionBreadcrumb>,
@@ -154,6 +156,8 @@ pub struct ObjectTemplateData {
     pub updated_at: Option<String>,
     pub category: Option<String>,
     pub slope_type: Option<String>,
+    pub country_code: Option<String>,
+    pub country_full: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -182,6 +186,12 @@ pub struct TripTemplate {
 pub struct TripWithRoute {
     pub trip: Trip,
     pub route: Vec<TripRoute>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RegionTripsStats {
+    pub total: i64,
+    pub by_type: std::collections::BTreeMap<String, i64>,
 }
 
 // Кастомный фильтр для форматирования числа с пробелами между тысячами
@@ -486,40 +496,47 @@ async fn get_region(
             ORDER BY o.name
             LIMIT 24"#,
         &subregion_ids
-        )
-        .fetch_all(&pool)
-        .await
-        .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
-        .into_iter()
-        .map(|row| ObjectInfo {
-            id: row.id,
-            name: row.name,
-            object_type: row.r#type,
-            height: row.height,
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+    .into_iter()
+    .map(|row| ObjectInfo {
+        id: row.id,
+        name: row.name,
+        object_type: row.r#type,
+        height: row.height,
         category: row.category,
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
         reports_count: row.reports_count.unwrap_or(0),
-        })
+    })
     .collect();
     let vertices = sqlx::query!(
-        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Вершина' ORDER BY name LIMIT 24",
+        r#"SELECT o.id, o.name, o.type, o.height, o.latitude, o.longitude, COUNT(t.id) as reports_count
+            FROM objects o
+            LEFT JOIN trip_route tr ON tr.object_id = o.id
+            LEFT JOIN trips t ON t.id = tr.trip_id
+            WHERE o.region_id = ANY($1) AND o.type = 'Вершина'
+            GROUP BY o.id, o.name, o.type, o.height, o.latitude, o.longitude
+            ORDER BY o.name
+            LIMIT 24"#,
         &subregion_ids
-        )
-        .fetch_all(&pool)
-        .await
-        .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
-        .into_iter()
-        .map(|row| ObjectInfo {
-            id: row.id,
-            name: row.name,
-            object_type: row.r#type,
-            height: row.height,
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+    .into_iter()
+    .map(|row| ObjectInfo {
+        id: row.id,
+        name: row.name,
+        object_type: row.r#type,
+        height: row.height,
         category: None,
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
-        reports_count: 0,
-        })
+        reports_count: row.reports_count.unwrap_or(0),
+    })
     .collect();
     let glaciers = sqlx::query!(
         "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Ледник' ORDER BY name LIMIT 24",
@@ -616,7 +633,14 @@ async fn get_region(
 
     // Получаем высочайшие вершины (limit 21, по убыванию высоты)
     let heightest_peaks = sqlx::query!(
-        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Вершина' AND height IS NOT NULL ORDER BY height DESC LIMIT 21",
+        r#"SELECT o.id, o.name, o.type, o.height, o.latitude, o.longitude, COUNT(t.id) as reports_count
+            FROM objects o
+            LEFT JOIN trip_route tr ON tr.object_id = o.id
+            LEFT JOIN trips t ON t.id = tr.trip_id
+            WHERE o.region_id = ANY($1) AND o.type = 'Вершина' AND o.height IS NOT NULL
+            GROUP BY o.id, o.name, o.type, o.height, o.latitude, o.longitude
+            ORDER BY o.height DESC
+            LIMIT 21"#,
         &subregion_ids
     )
     .fetch_all(&pool)
@@ -631,12 +655,19 @@ async fn get_region(
         category: None,
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
-        reports_count: 0,
+        reports_count: row.reports_count.unwrap_or(0),
     })
     .collect();
     // Получаем высочайшие перевалы (limit 21, по убыванию высоты)
     let heightest_passes = sqlx::query!(
-        "SELECT id, name, type, height, category, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Перевал' AND height IS NOT NULL ORDER BY height DESC LIMIT 21",
+        r#"SELECT o.id, o.name, o.type, o.height, o.category, o.latitude, o.longitude, COUNT(t.id) as reports_count
+            FROM objects o
+            LEFT JOIN trip_route tr ON tr.object_id = o.id
+            LEFT JOIN trips t ON t.id = tr.trip_id
+            WHERE o.region_id = ANY($1) AND o.type = 'Перевал' AND o.height IS NOT NULL
+            GROUP BY o.id, o.name, o.type, o.height, o.category, o.latitude, o.longitude
+            ORDER BY o.height DESC
+            LIMIT 21"#,
         &subregion_ids
     )
     .fetch_all(&pool)
@@ -651,9 +682,59 @@ async fn get_region(
         category: row.category,
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
-        reports_count: 0,
+        reports_count: row.reports_count.unwrap_or(0),
     })
     .collect();
+
+    // Получаем все trips по региону и подрегионам (Горный и Пеший)
+    let gorniy_trips = get_trips_by_type(&pool, &subregion_ids, "Горный", 12).await?;
+    let peshiy_trips = get_trips_by_type(&pool, &subregion_ids, "Пеший", 12).await?;
+    let velotrips = get_trips_by_type(&pool, &subregion_ids, "Велосипедный", 12).await?;
+    let lyzhniy_trips = get_trips_by_type(&pool, &subregion_ids, "Лыжный", 12).await?;
+    let gornopeshiy_trips = get_trips_by_type(&pool, &subregion_ids, "Горно-пеший", 12).await?;
+    let mut by_type = std::collections::BTreeMap::new();
+    by_type.insert("Горный", gorniy_trips);
+    by_type.insert("Пеший", peshiy_trips);
+    by_type.insert("Велосипедный", velotrips);
+    by_type.insert("Лыжный", lyzhniy_trips);
+    by_type.insert("Горно-пеший", gornopeshiy_trips);
+    let total_count = by_type.values().map(|v| v.len()).sum();
+    let region_trips_tabs = ObjectTripsTabs { total_count, by_type };
+
+    // --- Считаем статистику по походам (trips) ---
+    let trips_total_row = sqlx::query_scalar!(
+        "SELECT COUNT(*) FROM trips WHERE region_id = ANY($1)",
+        &subregion_ids
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
+    let trips_total = trips_total_row.unwrap_or(0);
+
+    let trips_by_type_rows = sqlx::query!(
+        "SELECT type, COUNT(*) as count FROM trips WHERE region_id = ANY($1) GROUP BY type",
+        &subregion_ids
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut trips_by_type = std::collections::BTreeMap::new();
+    for row in trips_by_type_rows {
+        let t = row.r#type.unwrap_or_default();
+        let key = match t.trim() {
+            "Горный" | "Горный поход" => "Горный",
+            "Пеший" | "Пеший поход" => "Пеший",
+            "Велосипедный" | "Велосипедный поход" => "Велосипедный",
+            "Лыжный" | "Лыжный поход" => "Лыжный",
+            "Горно-пеший" | "Горно-пеший поход" | "Горно" => "Горно-пеший",
+            other => other,
+        };
+        *trips_by_type.entry(key.to_string()).or_insert(0) += row.count.unwrap_or(0);
+    }
+    for key in ["Горный", "Пеший", "Велосипедный", "Лыжный", "Горно-пеший"] {
+        trips_by_type.entry(key.to_string()).or_insert(0);
+    }
+    let trips_stats = RegionTripsStats { total: trips_total, by_type: trips_by_type };
 
     Ok(Html(RegionPageTemplate {
         region: region_info,
@@ -669,6 +750,8 @@ async fn get_region(
         nature,
         heightest_peaks,
         heightest_passes,
+        trips_tabs: region_trips_tabs,
+        trips_stats,
     }.render().unwrap()))
 }
 
@@ -724,7 +807,7 @@ async fn get_object(
     let object = sqlx::query!(
         r#"
         SELECT o.id, o.name, o.type as "type?", o.region_id as "region_id?", o.parent_id, o.height,
-               o.latitude, o.longitude, o.description, r.name as region_name, o.country_full, o.border_distance, o.info_source, o.updated_at,
+               o.latitude, o.longitude, o.description, r.name as region_name, o.country_code, o.country_full, o.border_distance, o.info_source, o.updated_at,
                o.category, o.slope_type
         FROM objects o
         LEFT JOIN regions r ON o.region_id = r.id
@@ -762,14 +845,15 @@ async fn get_object(
         lng,
         description: object.description,
         alt_names: None,
-        country: None,
-        full_address: object.country_full,
+        full_address: object.country_full.clone(),
         border_distance: object.border_distance.and_then(|v| v.to_f64()),
         region_breadcrumbs,
         info_source: object.info_source,
         updated_at: object.updated_at,
         category: object.category,
         slope_type: object.slope_type,
+        country_code: object.country_code.clone().or_else(|| object.country_full.as_ref().and_then(|s| country_code_from_full(s))),
+        country_full: object.country_full.clone(),
     };
 
     let regions_for_aside = get_regions_with_count(&pool).await;
@@ -1148,4 +1232,89 @@ async fn create_photo(
     .await?;
 
     Ok((StatusCode::CREATED, Json(result)))
+}
+
+// Добавить вспомогательную функцию для country_code_from_full
+fn country_code_from_full(full: &str) -> Option<String> {
+    let map = [
+        ("Россия", "ru"), ("Russian Federation", "ru"), ("Russia", "ru"),
+        ("Казахстан", "kz"), ("Kazakhstan", "kz"),
+        ("Киргизия", "kg"), ("Кыргызстан", "kg"), ("Kyrgyzstan", "kg"),
+        ("Грузия", "ge"), ("Georgia", "ge"),
+        ("Таджикистан", "tj"), ("Tajikistan", "tj"),
+        ("Узбекистан", "uz"), ("Uzbekistan", "uz"),
+        ("Монголия", "mn"), ("Mongolia", "mn"),
+        ("Китай", "cn"), ("China", "cn"),
+        ("Абхазия", "ge"), ("Abkhazia", "ge"),
+        ("Армения", "am"), ("Armenia", "am"),
+        ("Турция", "tr"), ("Turkey", "tr"),
+        ("Азербайджан", "az"), ("Azerbaijan", "az"),
+        ("Иран", "ir"), ("Iran", "ir"),
+        ("Афганистан", "af"), ("Afghanistan", "af"),
+        ("Пакистан", "pk"), ("Pakistan", "pk"),
+        ("Индия", "in"), ("India", "in"),
+    ];
+    for (name, code) in map.iter() {
+        if full.to_lowercase().contains(&name.to_lowercase()) {
+            return Some(code.to_string());
+        }
+    }
+    None
+}
+
+// Вынесенная функция для выборки trips по типу
+async fn get_trips_by_type(
+    pool: &PgPool,
+    subregion_ids: &[i32],
+    trip_type: &str,
+    limit: i64,
+) -> Result<Vec<TripWithRoute>, StatusCode> {
+    let mut types = vec![trip_type.to_string(), format!("{} поход", trip_type)];
+    if trip_type == "Горно-пеший" {
+        types.push("Горно".to_string());
+    }
+    let trip_rows = sqlx::query_as!(
+        Trip,
+        r#"
+        SELECT t.id, t.type as "type?", t.region_id, r.name as "region_name?", t.difficulty, t.season, t.author, t.city, t.tlib_url
+        FROM trips t
+        LEFT JOIN regions r ON t.region_id = r.id
+        WHERE t.region_id = ANY($1) AND t.type = ANY($2)
+        ORDER BY t.id DESC
+        LIMIT $3
+        "#,
+        subregion_ids,
+        &types,
+        limit
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut trips_with_route = Vec::new();
+    for trip in trip_rows {
+        let route = sqlx::query_as!(
+            TripRoute,
+            r#"
+            SELECT tr.id, tr.trip_id, tr.order_num, tr.object_id, tr.name,
+                   o.type as object_type, o.height,
+                   o.category,
+                   o.latitude::DOUBLE PRECISION as latitude, o.longitude::DOUBLE PRECISION as longitude,
+                   (
+                     SELECT COUNT(DISTINCT tr2.trip_id)
+                     FROM trip_route tr2
+                     WHERE tr2.object_id = tr.object_id
+                   ) as trip_count
+            FROM trip_route tr
+            LEFT JOIN objects o ON tr.object_id = o.id
+            WHERE tr.trip_id = $1
+            ORDER BY tr.order_num
+            "#,
+            trip.id
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        trips_with_route.push(TripWithRoute { trip, route });
+    }
+    Ok(trips_with_route)
 } 
