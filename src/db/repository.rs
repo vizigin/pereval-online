@@ -5,8 +5,9 @@ pub async fn get_object(pool: &PgPool, id: i32) -> Result<Option<Object>, sqlx::
     sqlx::query_as!(
         Object,
         r#"
-        SELECT id, name, type as "type!", region_id, parent_id, height,
-               latitude, longitude, description
+        SELECT id, name, type as "type?", region_id, parent_id, height,
+               latitude, longitude, description,
+               NULL as category, NULL as slope_type
         FROM objects
         WHERE id = $1
         "#,
@@ -24,8 +25,9 @@ pub async fn list_objects(
     sqlx::query_as!(
         Object,
         r#"
-        SELECT id, name, type as "type!", region_id, parent_id, height,
-               latitude, longitude, description
+        SELECT id, name, type as "type?", region_id, parent_id, height,
+               latitude, longitude, description,
+               NULL as category, NULL as slope_type
         FROM objects
         ORDER BY name
         LIMIT $1
@@ -44,8 +46,9 @@ pub async fn create_object(pool: &PgPool, object: CreateObject) -> Result<Object
         r#"
         INSERT INTO objects (name, type, region_id, parent_id, height, latitude, longitude, description)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, name, type as "type!", region_id, parent_id, height,
-                  latitude, longitude, description
+        RETURNING id, name, type as "type?", region_id, parent_id, height,
+                  latitude, longitude, description,
+                  NULL as category, NULL as slope_type
         "#,
         object.name,
         object.r#type,
@@ -110,7 +113,7 @@ pub async fn update_object(pool: &PgPool, id: i32, object: UpdateObject) -> Resu
     query.push_str(&format!(
         r#"
         WHERE id = ${}
-        RETURNING id, name, type as "type!", region_id, parent_id, height,
+        RETURNING id, name, type as "type?", region_id, parent_id, height,
                   latitude, longitude, description"#,
         param_index
     ));

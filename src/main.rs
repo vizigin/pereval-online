@@ -15,6 +15,8 @@ use tower_http::services::ServeDir;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
+    // DEBUG: Выводим DATABASE_URL для диагностики
+    println!("[DEBUG] DATABASE_URL={}", std::env::var("DATABASE_URL").unwrap_or_else(|_| "<not set>".to_string()));
     // Initialize tracing
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(

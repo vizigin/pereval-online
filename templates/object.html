@@ -1,485 +1,357 @@
 {% extends "base.html" %}
 
+{% block body_class %}page-object{% endblock %}
+
 {% block content %}
-    <div class="content ">
+<div class="content ">
 
-        <div
-            class="breadcrumb breadcrumb--fixed touch-focused disable-prevent-link-clicks compensate-for-scrollbar no-scrollbar">
-            <a href="/regions">Все районы</a>
-            {% for region in object.region_breadcrumbs %}
-                / <a href="/regions/{{ region.id }}">{{ region.name }}</a>
-            {% endfor %}
-            <div class="breadcrumb__toggler"></div>
-        </div>
-        <div class="breadcrumb-replace"></div>
+    <div
+        class="breadcrumb breadcrumb--fixed touch-focused disable-prevent-link-clicks compensate-for-scrollbar no-scrollbar">
+        <a href="/regions">Все районы</a>
+        {% for region in object.region_breadcrumbs %}
+        / <a href="/regions/{{ region.id }}">{{ region.name }}</a>
+        {% endfor %}
+        <div class="breadcrumb__toggler"></div>
+    </div>
+    <div class="breadcrumb-replace"></div>
 
-        <div class="content__inner">
+    <div class="content__inner">
 
-            <h1 class="title">
-                <span class="title-text">
-                    {{ object.name }}
-                </span>
-            </h1>
+        <h1 class="title">
+            <span class="title-text">
+                {{ object.name }}
+            </span>
+        </h1>
 
-            <div class="object">
+        <div class="object">
 
-                {% if object.alt_names.is_some() %}
-                <div class="object__names">
-                    <strong>Другие названия:</strong>
-                    {{ object.alt_names.as_ref().unwrap() }}
-                </div>
-                {% endif %}
+            {% if object.alt_names.is_some() %}
+            <div class="object__names">
+                <strong>Другие названия:</strong>
+                {{ object.alt_names.as_ref().unwrap() }}
+            </div>
+            {% endif %}
 
-                <div class="object__country object__country--ru">
-                    <div class="-flag">
-                        {% if object.country.is_some() %}
-                        <img class="img-flag" src="/static/flags/{{ object.country.as_ref().unwrap()|lower }}.png" alt="">
-                        {% endif %}
-                        {# DEBUG: full_address = {{ object.full_address }} #}
-                        {% if object.full_address.is_some() %}
-                        {{ object.full_address.as_ref().unwrap() }}
-                        {% else %}
-                        —
-                        {% endif %}
-                    </div>  
-                </div>
-
-                {% if object.border_distance.is_some() %}
-                <div class="object__boundary-distance">
-                    <i class="fa  fa-exclamation-circle "></i>
-                    До госграницы {{ object.border_distance.as_ref().unwrap() }} км
-                </div>
-                {% endif %}
-
-
-                <div class="sidebar object__sidebar  object__sidebar--w-map  compensate-for-scrollbar">
-
-                    <div class="sidebar__scroll">
-
-                        <!--noindex-->
-                        <div class="object__image object__image--no-image">
-                            <div class="object__image-container">
-                                <div class="object__image-inner">
-                                    <div class="no-image"></div>
-                                    <div class="abs-center-message">
-                                        <p><span class="font-semibold">У нас пока нет фотографий объектов.<br></span>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!--/noindex-->
-
-                        <div class="object__params">
-                            <div class="object__param">
-                                <div class="object__param-row">
-                                    <span class="object__param-title">Высота:</span>
-                                    <span class="object__param-value">
-                                        {% if object.height.is_some() %}
-                                            {{ self::format_number(object.height.as_ref().unwrap()) }} м
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="object__param">
-                                <div class="object__param-row">
-                                    <span class="object__param-title">GPS:</span>
-                                    <span class="object__param-value">
-                                        {% if object.lat.is_some() %}
-                                            {% if object.lng.is_some() %}
-                                                {{ object.lat.as_ref().unwrap() }}, {{ object.lng.as_ref().unwrap() }}
-                                            {% else %}
-                                                —
-                                            {% endif %}
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="object__param hide-touch">
-                                <div class="object__param-row">
-                                    <span class="object__param-title">Google Maps:</span>
-                                    <span class="object__param-value">
-                                        {% if object.lat.is_some() %}
-                                            {% if object.lng.is_some() %}
-                                                <a class="btn btn--xcompact btn--near btn--small tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                    data-title="Вид в Google Earth с пролётом вокруг объекта"
-                                                    data-tooltipster="{&quot;side&quot;: &quot;top&quot;}"
-                                                    href="https://earth.google.com/web/@{{ object.lat.as_ref().unwrap() }},{{ object.lng.as_ref().unwrap() }},500a,0d,35y,180h,70t,0r/data=KAI"
-                                                    target="_blank">Вид в 3D 360°</a>
-                                            {% else %}
-                                                —
-                                            {% endif %}
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </span>
-                                </div>
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    <div class="object__map map-expanded-container compensate-for-scrollbar">
-                        <div class="map js-map js-map-on-scroll-observer-inited js-map-on-scroll-loaded" data-zoom="14"
-                            data-center="43.32561,42.67434" data-object-id="23150"></div>
-                    </div>
-                </div>
-
-                <div class="object__prev-next">
-                    {% if object.info_source.is_some() %}
-                        {{ object.info_source.as_ref().unwrap() }}
+            <div class="object__country object__country--ru">
+                <div class="-flag">
+                    {% if object.country.is_some() %}
+                    <img class="img-flag" src="/static/flags/{{ object.country.as_ref().unwrap()|lower }}.png" alt="">
+                    {% endif %}
+                    {# DEBUG: full_address = {{ object.full_address }} #}
+                    {% if object.full_address.is_some() %}
+                    {{ object.full_address.as_ref().unwrap() }}
+                    {% else %}
+                    —
                     {% endif %}
                 </div>
+            </div>
 
-                <div class="object__meta">
-                    {% if object.updated_at.is_some() %}
-                        <div class="object__updated">
-                            {{ object.updated_at.as_ref().unwrap() }}
-                        </div>
-                    {% endif %}
-                </div>
+            {% if object.border_distance.is_some() %}
+            <div class="object__boundary-distance">
+                <i class="fa  fa-exclamation-circle "></i>
+                До госграницы {{ object.border_distance.as_ref().unwrap() }} км
+            </div>
+            {% endif %}
 
 
-                <div class="object__tabbed object__block object__block--grey-light object__block--bordered">
-                    <div class="object__tabbed-title object__block-title">
-                        Отчёты по&nbsp;объекту
-                        <span class="object__block-title-suffix color-muted-strong font-smaller">(43)</span>
-                    </div>
-                    <div class="object__tabbed-content">
-                        <nav class="tabs tabs--inline tabs-js">
-                            <div class="tabs__inner tabs-fixed-center scroll-in-start scroll-in-end">
-                                <div class="tabs__scroll tabs-fixed-center-scroll">
-                                    <div class="tabs__scroll-inner">
-                                        <ul>
-                                            <li class="active"><a href="#tab-trips-1">
-                                                    <div class="object__tabbed-category">Горный <span
-                                                            class="color-muted-strong font-smaller font-regular">(39)</span>
-                                                    </div>
-                                                </a></li>
-                                            <li><a href="#tab-trips-2">
-                                                    <div class="object__tabbed-category">Пеший <span
-                                                            class="color-muted-strong font-smaller font-regular">(3)</span>
-                                                    </div>
-                                                </a></li>
-                                            <li><a href="#tab-trips-6">
-                                                    <div class="object__tabbed-category">Горно-пеший <span
-                                                            class="color-muted-strong font-smaller font-regular">(1)</span>
-                                                    </div>
-                                                </a></li>
-                                        </ul>
-                                    </div>
+            <div class="sidebar object__sidebar  object__sidebar--w-map  compensate-for-scrollbar">
+
+                <div class="sidebar__scroll">
+
+                    <!--noindex-->
+                    <div class="object__image object__image--no-image">
+                        <div class="object__image-container">
+                            <div class="object__image-inner">
+                                <div class="no-image"></div>
+                                <div class="abs-center-message">
+                                    <p><span class="font-semibold">У нас пока нет фотографий объектов.<br></span>
+                                    </p>
                                 </div>
                             </div>
-                        </nav>
+                        </div>
+                    </div>
+                    <!--/noindex-->
 
-                        <div class="tab-panes">
-                            <div id="tab-trips-1" class="tab-pane  active ">
-                                <div class="object__tabbed-list" data-scroll-load-page="1"
-                                    data-scroll-load-insert-before="#tab-trips-1 .object__tabbed-item--more"
-                                    data-scroll-load-inactive-class="hidden"
-                                    data-hide-on-last-load="#tab-trips-1 .object__tabbed-item--more"
-                                    data-scroll-load-url="/object/23150/nearest/more/trip/1">
+                    <div class="object__params">
+                        <div class="object__param">
+                            <div class="object__param-row">
+                                <span class="object__param-title">Высота:</span>
+                                <span class="object__param-value">
+                                    {% if object.height.is_some() %}
+                                    {{ self::format_number(object.height.as_ref().unwrap()) }} м
+                                    {% else %}
+                                    —
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="object__param">
+                            <div class="object__param-row">
+                                <span class="object__param-title">Категорийность</span>
+                                <span class="object__param-value"><span
+                                        class="object__param-value-prefix color-muted">летом </span>{% if
+                                    object.category.is_some() %}{{ object.category.as_ref().unwrap() }}{% else %}—{%
+                                    endif %}</span>
+                            </div>
+                        </div>
+                        <div class="object__param">
+                            <div class="object__param-row">
+                                <span class="object__param-title">Тип склона</span>
+                                <span class="object__param-value"><span
+                                        class="object__param-value-prefix color-muted">летом </span><span
+                                        class="tooltip link link--dotted link--border-closer link--default cursor-default tooltipstered tooltip-inited"
+                                        data-title="снежный"
+                                        data-tooltipster="{&quot;distance&quot;: -5, &quot;theme&quot;: &quot;tooltipster-default tooltipster-compact&quot;}"><span
+                                            class="link__inner">сн</span></span>-<span
+                                        class="tooltip link link--dotted link--border-closer link--default cursor-default tooltipstered tooltip-inited"
+                                        data-title="ледовый"
+                                        data-tooltipster="{&quot;distance&quot;: -5, &quot;theme&quot;: &quot;tooltipster-default tooltipster-compact&quot;}"><span
+                                            class="link__inner">лд</span></span>-<span
+                                        class="tooltip link link--dotted link--border-closer link--default cursor-default tooltipstered tooltip-inited"
+                                        data-title="скальный"
+                                        data-tooltipster="{&quot;distance&quot;: -5, &quot;theme&quot;: &quot;tooltipster-default tooltipster-compact&quot;}"><span
+                                            class="link__inner">ск</span></span></span>
+                            </div>
+                        </div>
+                        <div class="object__param">
+                            <div class="object__param-row">
+                                <span class="object__param-title">GPS:</span>
+                                <span class="object__param-value">
+                                    {% if object.lat.is_some() %}
+                                    {% if object.lng.is_some() %}
+                                    {{ object.lat.as_ref().unwrap() }}, {{ object.lng.as_ref().unwrap() }}
+                                    {% else %}
+                                    —
+                                    {% endif %}
+                                    {% else %}
+                                    —
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="object__param hide-touch">
+                            <div class="object__param-row">
+                                <span class="object__param-title">Google Maps:</span>
+                                <span class="object__param-value">
+                                    {% if object.lat.is_some() %}
+                                    {% if object.lng.is_some() %}
+                                    <a class="btn btn--xcompact btn--near btn--small tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                        data-title="Вид в Google Earth с пролётом вокруг объекта"
+                                        data-tooltipster="{&quot;side&quot;: &quot;top&quot;}"
+                                        href="https://earth.google.com/web/@{{ object.lat.as_ref().unwrap() }},{{ object.lng.as_ref().unwrap() }},500a,0d,35y,180h,70t,0r/data=KAI"
+                                        target="_blank">Вид в 3D 360°</a>
+                                    {% else %}
+                                    —
+                                    {% endif %}
+                                    {% else %}
+                                    —
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="object__map map-expanded-container compensate-for-scrollbar">
+                    <div class="map js-map js-map-on-scroll-observer-inited js-map-on-scroll-loaded" data-zoom="14"
+                        data-center="43.32561,42.67434" data-object-id="23150"></div>
+                </div>
+            </div>
+
+            <div class="object__prev-next">
+                {% if object.info_source.is_some() %}
+                {{ object.info_source.as_ref().unwrap() }}
+                {% endif %}
+            </div>
+
+            <div class="object__meta">
+                {% if object.updated_at.is_some() %}
+                <div class="object__updated">
+                    {{ object.updated_at.as_ref().unwrap() }}
+                </div>
+                {% endif %}
+            </div>
+
+
+            <div class="object__tabbed object__block object__block--grey-light object__block--bordered">
+                <div class="object__tabbed-title object__block-title">
+                    Отчёты по&nbsp;объекту
+                    <span class="object__block-title-suffix color-muted-strong font-smaller">({{ trips_tabs.total_count }})</span>
+                </div>
+                <div class="object__tabbed-content">
+                    <nav class="tabs tabs--inline tabs-js">
+                        <div class="tabs__inner tabs-fixed-center scroll-in-start scroll-in-end">
+                            <div class="tabs__scroll tabs-fixed-center-scroll">
+                                <div class="tabs__scroll-inner">
+                                    <ul>
+                                        {% set tab_types = [
+                                            ("Горный", "Горный"),
+                                            ("Пеший", "Пеший"),
+                                            ("Лыжный", "Лыжный"),
+                                            ("Велосипедный", "Велосипедный"),
+                                            ("Горно-пеший", "Горно-пеший")
+                                        ] %}
+                                        {% for tab in tab_types %}
+                                            {% if trips_tabs.by_type.get(tab.0).is_some() %}
+                                                <li class="{% if loop.first %}active{% endif %}"><a href="#tab-trips-{{ loop.index }}">
+                                                        <div class="object__tabbed-category">{{ tab.1 }} <span class="color-muted-strong font-smaller font-regular">({{ trips_tabs.by_type.get(tab.0).unwrap().len() }})</span></div>
+                                                    </a></li>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+                    <div class="tab-panes">
+                        {% for tab in tab_types %}
+                            {% if trips_tabs.by_type.get(tab.0).is_some() %}
+                            <div id="tab-trips-{{ loop.index }}" class="tab-pane {% if loop.first %}active{% endif %}">
+                                <div class="object__tabbed-list" data-scroll-load-page="1">
+                                    {% for trip_with_route in trips_tabs.by_type.get(tab.0).unwrap() %}
                                     <div class="object__tabbed-item object__tabbed-item--trip">
-
-
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--trip sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient sobject-wrapper--object-trip">
-                                            <div class="sobject" data-id="7675">
-                                                <a href="/web/20240910073152/https://pereval.online/trip/7675"
-                                                    class="sobject__link"><span>2 к.с.</span><span>,
-                                                        Приэльбрусье</span><span>,</span>
-                                                    август 2022
-                                                    <span>(</span><span>Злой</span><span>)</span></a> <span
-                                                    class="sobject__params">
-                                                    <span class="strip__path-sitem    ">
-                                                        г. Невинномыск
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        пос. Верхний Баксан
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    strip__path-sitem--near-active  ">
-                                                        д/р Сылтрансу
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem  strip__path-sitem--active    ">
-                                                        <span class="strip__path-item">
-                                                            оз. Сылтранкёль
-
-                                                        </span> →
-                                                    </span>
-                                                    <span class="strip__path-sitem    strip__path-sitem--near-active  ">
-
-                                                        пер. Сылтран
-                                                        (н/к, 3&nbsp;205&nbsp;м)
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        д/р Мукал
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        пер. Ворута
-                                                        (н/к-1А)
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        д/р Мкяра
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-
-                                                        лед. Мкяра Западный
-
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-
-                                                        пер. Ирик
-                                                        (1Б, 3&nbsp;550&nbsp;м)
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        д/р Ирикчат
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-
-                                                        пер. Ирикчат
-                                                        (1Б*, 3&nbsp;667&nbsp;м)
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        л/п Джикаугенкез
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-
-                                                        пер. Джикаугенкез
-                                                        (1Б, 3&nbsp;520&nbsp;м)
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        д/р Субаши
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        д/р Уллусенчи
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-
-                                                        пер. Кыртыкауш
-                                                        (н/к, 3&nbsp;242&nbsp;м)
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        д/р Исламчат
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-
-                                                        пер. Каракая Северный
-                                                        (н/к, 2&nbsp;880&nbsp;м)
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-
-                                                        ур. Джилысу
-
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-
-                                                        пол. Эммануэля
-
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        ур. Иракхирсырт
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        д/р Кызылкол
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-
-                                                        пер. Балкбаши
-                                                        (1А, 3&nbsp;691&nbsp;м)
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        д/р Битюктюбекол
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        д/р Чайтчесу
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-
-                                                        пер. Кольцевой
-                                                        (1А, 3&nbsp;353&nbsp;м)
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        д/р Уллу-Хурзук
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        пос. Хурзук
-                                                        →
-                                                    </span>
-                                                    <span class="strip__path-sitem    ">
-                                                        г. Пятигорск
-
-                                                    </span>
+                                        <div class="sobject-wrapper sobject-wrapper--trip sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient sobject-wrapper--object-trip">
+                                            <div class="sobject" data-id="{{ trip_with_route.trip.id }}">
+                                                <a href="/trips/{{ trip_with_route.trip.id }}" class="sobject__link">
+                                                    <span>{{ trip_with_route.trip.difficulty.as_deref().unwrap_or("") }}</span>
+                                                    {% if trip_with_route.trip.region_name.is_some() %}<span>, {{ trip_with_route.trip.region_name.as_ref().unwrap() }}</span>{% endif %}
+                                                    {% if trip_with_route.trip.season.is_some() %}<span>, {{ trip_with_route.trip.season.as_ref().unwrap() }}</span>{% endif %}
+                                                    {% if trip_with_route.trip.author.is_some() %}<span> ({{ trip_with_route.trip.author.as_ref().unwrap() }})</span>{% endif %}
+                                                </a>
+                                                <span class="sobject__params">
+                                                    {% for point in trip_with_route.route %}
+                                                        <span class="strip__path-sitem">{{ point.name.as_deref().unwrap_or("Без названия") }}{% if loop.last %}{% else %} → {% endif %}</span>
+                                                    {% endfor %}
                                                 </span>
                                             </div>
-                                            <div class="sobject-nbsp">&nbsp;<span class="sobject__nbsp-2">&nbsp;</span>
-                                            </div>
                                         </div>
                                     </div>
-                                    <!-- ... (другие табы и элементы) ... -->
+                                    {% endfor %}
                                 </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="object__tabbed object__block object__block--grey-light object__block--bordered">
+                <div class="object__tabbed-title object__block-title">
+                    Ближайшие объекты
+                    <span class="object__block-title-suffix nowrap">в&nbsp;радиусе 10&nbsp;км</span>
+                </div>
+                <div class="object__tabbed-content">
+                    <nav class="tabs tabs--inline tabs-js">
+                        <div class="tabs__inner tabs-fixed-center scroll-in-start scroll-in-end">
+                            <div class="tabs__scroll tabs-fixed-center-scroll">
+                                <div class="tabs__scroll-inner">
+                                    <ul>
+                                        <li class="active">
+                                            <a href="#" data-tab-selector="#tab-nearest-objects-1">
+                                                <div class="object__tabbed-category">
+                                                    Вершины
+                                                </div>
+                                            </a>
+                                        </li>
+                                        <li class="">
+                                            <a href="#" data-tab-selector="#tab-nearest-objects-2">
+                                                <div class="object__tabbed-category">
+                                                    Перевалы
+                                                </div>
+                                            </a>
+                                        </li>
+                                        <li class="">
+                                            <a href="#" data-tab-selector="#tab-nearest-objects-4">
+                                                <div class="object__tabbed-category">
+                                                    Ледники
+                                                </div>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <div class="tab-panes">
+                        <div id="tab-nearest-objects-1" class="tab-pane active">
+                            <div class="object__tabbed-list  object__tabbed-list--type-1">
+                                {% for obj in nearest_peaks %}
+                                <div class="object__tabbed-item">
+                                    <div class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                        <div class="sobject" data-id="{{ obj.id }}">
+                                            <a href="/objects/{{ obj.id }}" class="sobject__link">{{ obj.name }}</a>
+                                            <span class="sobject__params">
+                                                {% if obj.height.is_some() %}({{ self::format_number(obj.height.as_ref().unwrap()) }} м){% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="object__tabbed-item color-muted">Нет ближайших вершин</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div id="tab-nearest-objects-2" class="tab-pane">
+                            <div class="object__tabbed-list  object__tabbed-list--type-2">
+                                {% for obj in nearest_passes %}
+                                <div class="object__tabbed-item">
+                                    <div class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                        <div class="sobject" data-id="{{ obj.id }}">
+                                            <a href="/objects/{{ obj.id }}" class="sobject__link">{{ obj.name }}</a>
+                                            <span class="sobject__params">
+                                                {% if obj.height.is_some() %}({{ self::format_number(obj.height.as_ref().unwrap()) }} м){% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="object__tabbed-item color-muted">Нет ближайших перевалов</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div id="tab-nearest-objects-4" class="tab-pane">
+                            <div class="object__tabbed-list  object__tabbed-list--type-4">
+                                {% for obj in nearest_glaciers %}
+                                <div class="object__tabbed-item">
+                                    <div class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
+                                        <div class="sobject" data-id="{{ obj.id }}">
+                                            <a href="/objects/{{ obj.id }}" class="sobject__link">{{ obj.name }}</a>
+                                            <span class="sobject__params">
+                                                {% if obj.height.is_some() %}({{ self::format_number(obj.height.as_ref().unwrap()) }} м){% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="object__tabbed-item color-muted">Нет ближайших ледников</div>
+                                {% endfor %}
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="object__tabbed object__block object__block--grey-light object__block--bordered">
-                    <div class="object__tabbed-title object__block-title">
-                        Ближайшие объекты
-                        <span class="object__block-title-suffix nowrap">в&nbsp;радиусе 10&nbsp;км</span>
-                    </div>
-                    <div class="object__tabbed-content">
-                        <nav class="tabs tabs--inline tabs-js">
-                            <div class="tabs__inner tabs-fixed-center scroll-in-start scroll-in-end">
-                                <div class="tabs__scroll tabs-fixed-center-scroll">
-                                    <div class="tabs__scroll-inner">
-                                        <ul>
-                                            <li class="active">
-                                                <a href="#" data-tab-selector="#tab-nearest-objects-1">
-                                                    <div class="object__tabbed-category">
-                                                        Вершины
-                                                    </div>
-                                                </a>
-                                            </li>
-                                            <li class="">
-                                                <a href="#" data-tab-selector="#tab-nearest-objects-2">
-                                                    <div class="object__tabbed-category">
-                                                        Перевалы
-                                                    </div>
-                                                </a>
-                                            </li>
-                                            <li class="">
-                                                <a href="#" data-tab-selector="#tab-nearest-objects-4">
-                                                    <div class="object__tabbed-category">
-                                                        Ледники
-                                                    </div>
-                                                </a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </nav>
-
-                        <div class="tab-panes">
-                            <div id="tab-nearest-objects-1" class="tab-pane active">
-                                <div class="object__tabbed-list  object__tabbed-list--type-1" data-scroll-load-page="1"
-                                    data-scroll-load-insert-before="#tab-nearest-objects-1 .object__tabbed-item--more"
-                                    data-scroll-load-inactive-class="hidden"
-                                    data-hide-on-last-load="#tab-nearest-objects-1 .object__tabbed-item--more"
-                                    data-scroll-load-url="/object/1056/nearest/more/1">
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.088796,80.410573" data-id="1203"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/1203"
-                                                    class="sobject__link">г. Маяк</a><span class="sobject__params">
-                                                    (4&nbsp;162&nbsp;м, 2.7&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="tab-nearest-objects-2" class="tab-pane">
-                                <div class="object__tabbed-list  object__tabbed-list--type-2" data-scroll-load-page="1"
-                                    data-scroll-load-insert-before="#tab-nearest-objects-2 .object__tabbed-item--more"
-                                    data-scroll-load-inactive-class="hidden"
-                                    data-hide-on-last-load="#tab-nearest-objects-2 .object__tabbed-item--more"
-                                    data-scroll-load-url="/object/1056/nearest/more/2">
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.116829,80.447142" data-id="965"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/965"
-                                                    class="sobject__link">пер. 50 лет НГУ</a><span
-                                                    class="sobject__params"> (2А, 3&nbsp;950&nbsp;м, 2.7&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="tab-nearest-objects-4" class="tab-pane">
-                                <div class="object__tabbed-list  object__tabbed-list--type-4" data-scroll-load-page="1"
-                                    data-scroll-load-insert-before="#tab-nearest-objects-4 .object__tabbed-item--more"
-                                    data-scroll-load-inactive-class="hidden"
-                                    data-hide-on-last-load="#tab-nearest-objects-4 .object__tabbed-item--more"
-                                    data-scroll-load-url="/object/1056/nearest/more/4">
-                                    <div class="object__tabbed-item">
-                                        <div
-                                            class="sobject-wrapper sobject-wrapper--oneline sobject-wrapper--w-hover sobject-wrapper--w-gradient">
-                                            <div class="sobject" data-latlng="45.108263,80.434207" data-id="19701"><a
-                                                    href="/web/20241204062700/https://pereval.online/object/19701"
-                                                    class="sobject__link">лед. Щукина</a><span class="sobject__params">
-                                                    (1.7&nbsp;км)<i
-                                                        class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
-                                                        data-title="Есть координаты"></i></span></div>
-                                            <div class="sobject-nbsp">&nbsp;</div>
-                                        </div>
-                                    </div>
-                                    <div class="object__tabbed-item object__tabbed-item--more">
-                                        <a class="link link--dashed link--border-closer show-more" href="#"
-                                            data-load-container="#tab-nearest-objects-4 .object__tabbed-list"><i
-                                                class="fa fa-refresh fa-spin fa-spin-2x"></i>показать ещё</a> ›
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
 
         </div>
 
     </div>
 
+</div>
 
-    <div class="footer footer--absolute touch-focused disable-prevent-link-clicks">
-        <div class="copyright">
-            <a href="//web.archive.org/web/20240910073152/https://vk.com/pereval.online" target="_blank"
-                class="social-icon social-icon--vk tooltip tooltipstered tooltip-inited"><i class="fab fa-vk"></i></a> ©
-            2024 Перевал.Online. Просим указывать ссылку на <a
-                href="https://web.archive.org/web/20240910073152/https://pereval.online/">pereval.online</a> при
-            использовании материалов сайта.
-        </div>
+
+<div class="footer footer--absolute touch-focused disable-prevent-link-clicks">
+    <div class="copyright">
+        <a href="//web.archive.org/web/20240910073152/https://vk.com/pereval.online" target="_blank"
+            class="social-icon social-icon--vk tooltip tooltipstered tooltip-inited"><i class="fab fa-vk"></i></a> ©
+        2024 Перевал.Online. Просим указывать ссылку на <a
+            href="https://web.archive.org/web/20240910073152/https://pereval.online/">pereval.online</a> при
+        использовании материалов сайта.
     </div>
-    <div class="footer-replace"></div>
+</div>
+<div class="footer-replace"></div>
 
 
 {% endblock %}

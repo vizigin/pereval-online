@@ -42,3 +42,30 @@ BEGIN
     -- Re-enable triggers
     SET session_replication_role = 'origin';
 END $$; 
+
+-- Удаление всех данных с учётом зависимостей
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'trip_route') THEN
+        DELETE FROM trip_route;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'photos') THEN
+        DELETE FROM photos;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'trips') THEN
+        DELETE FROM trips;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'objects') THEN
+        DELETE FROM objects;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'regions') THEN
+        DELETE FROM regions;
+    END IF;
+END $$;
+
+-- Альтернативно, если нужно полностью удалить таблицы (DROPs)
+DROP TABLE IF EXISTS trip_route CASCADE;
+DROP TABLE IF EXISTS photos CASCADE;
+DROP TABLE IF EXISTS trips CASCADE;
+DROP TABLE IF EXISTS objects CASCADE;
+DROP TABLE IF EXISTS regions CASCADE; 

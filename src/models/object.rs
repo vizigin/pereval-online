@@ -37,7 +37,7 @@ pub fn string_to_type_id(type_str: &str) -> Option<i16> {
 pub struct Object {
     pub id: i32,
     pub name: String,
-    pub r#type: String,
+    pub r#type: Option<String>,
     pub region_id: Option<i32>,
     pub parent_id: Option<i32>,
     pub height: Option<i32>,
@@ -46,11 +46,13 @@ pub struct Object {
     #[serde(with = "crate::models::object::bigdecimal_serde")]
     pub longitude: Option<BigDecimal>,
     pub description: Option<String>,
+    pub category: Option<String>,
+    pub slope_type: Option<String>,
 }
 
 impl Object {
     pub fn r#type(&self) -> Option<&str> {
-        type_id_to_string(self.r#type.parse::<i16>().unwrap())
+        type_id_to_string(self.r#type.as_ref().and_then(|s| s.parse::<i16>().ok())?)
     }
 
     pub fn has_coordinates(&self) -> bool {

@@ -72,10 +72,16 @@ pub struct RegionPageTemplate {
     pub region: RegionInfo,
     pub stats: RegionStats,
     pub subregions: Vec<SubregionInfo>,
-    pub objects: Vec<ObjectInfo>,
     pub active_type: String,
     pub regions: Vec<RegionInfo>,
     pub region_breadcrumbs: Vec<RegionBreadcrumb>,
+    pub passes: Vec<ObjectInfo>,
+    pub vertices: Vec<ObjectInfo>,
+    pub glaciers: Vec<ObjectInfo>,
+    pub infrastructure: Vec<ObjectInfo>,
+    pub nature: Vec<ObjectInfo>,
+    pub heightest_peaks: Vec<ObjectInfo>,
+    pub heightest_passes: Vec<ObjectInfo>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -100,6 +106,16 @@ pub struct ObjectInfo {
     pub name: String,
     pub object_type: Option<String>,
     pub height: Option<i32>,
+    pub category: Option<String>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub reports_count: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ObjectTripsTabs {
+    pub total_count: usize,
+    pub by_type: std::collections::BTreeMap<&'static str, Vec<TripWithRoute>>,
 }
 
 #[derive(Template)]
@@ -166,12 +182,6 @@ pub struct TripTemplate {
 pub struct TripWithRoute {
     pub trip: Trip,
     pub route: Vec<TripRoute>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ObjectTripsTabs {
-    pub total_count: usize,
-    pub by_type: std::collections::BTreeMap<&'static str, Vec<TripWithRoute>>,
 }
 
 // Кастомный фильтр для форматирования числа с пробелами между тысячами
@@ -381,8 +391,27 @@ async fn get_region(
     .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
     .ok_or(axum::http::StatusCode::NOT_FOUND)?;
 
-    // Получаем статистику по типам объектов
-    let stats = sqlx::query!(
+    // Получаем id всех подрегионов (рекурсивно)
+    let subregion_ids: Vec<i32> = sqlx::query_scalar!(
+        r#"
+        WITH RECURSIVE subregions AS (
+            SELECT id FROM regions WHERE id = $1
+            UNION ALL
+            SELECT r.id FROM regions r JOIN subregions sr ON r.parent_id = sr.id
+        )
+        SELECT id FROM subregions
+        "#,
+        id
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+    .into_iter()
+    .filter_map(|x| x)
+    .collect();
+
+    // Получаем статистику по типам объектов с учётом всех дочерних регионов
+    let stats_row = sqlx::query!(
         r#"
         SELECT
             COUNT(*) FILTER (WHERE type = 'Перевал') as passes,
@@ -390,20 +419,20 @@ async fn get_region(
             COUNT(*) FILTER (WHERE type = 'Ледник') as glaciers,
             COUNT(*) FILTER (WHERE type = 'Инфраструктура') as infrastructure,
             COUNT(*) FILTER (WHERE type = 'Природа') as nature
-        FROM objects WHERE region_id = $1
+        FROM objects WHERE region_id = ANY($1)
         "#,
-        id
+        &subregion_ids
     )
     .fetch_one(&pool)
     .await
     .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let stats = RegionStats {
-        passes: stats.passes.unwrap_or(0),
-        vertices: stats.vertices.unwrap_or(0),
-        glaciers: stats.glaciers.unwrap_or(0),
-        infrastructure: stats.infrastructure.unwrap_or(0),
-        nature: stats.nature.unwrap_or(0),
+        passes: stats_row.passes.unwrap_or(0),
+        vertices: stats_row.vertices.unwrap_or(0),
+        glaciers: stats_row.glaciers.unwrap_or(0),
+        infrastructure: stats_row.infrastructure.unwrap_or(0),
+        nature: stats_row.nature.unwrap_or(0),
     };
 
     // Получаем подрайоны (дочерние регионы) с рекурсивным подсчётом объектов
@@ -446,11 +475,17 @@ async fn get_region(
         _ => None,
     };
 
-    // Получаем объекты региона с фильтром по типу
-    let objects: Vec<ObjectInfo> = if let Some(type_name) = type_filter {
-        sqlx::query!(
-            "SELECT id, name, type, height FROM objects WHERE region_id = $1 AND type = $2 ORDER BY name",
-            id, type_name
+    // Получаем объекты по типам с лимитом 24 из всех подрегионов
+    let passes = sqlx::query!(
+        r#"SELECT o.id, o.name, o.type, o.height, o.category, o.latitude, o.longitude, COUNT(t.id) as reports_count
+            FROM objects o
+            LEFT JOIN trip_route tr ON tr.object_id = o.id
+            LEFT JOIN trips t ON t.id = tr.trip_id
+            WHERE o.region_id = ANY($1) AND o.type = 'Перевал'
+            GROUP BY o.id, o.name, o.type, o.height, o.category, o.latitude, o.longitude
+            ORDER BY o.name
+            LIMIT 24"#,
+        &subregion_ids
         )
         .fetch_all(&pool)
         .await
@@ -461,12 +496,15 @@ async fn get_region(
             name: row.name,
             object_type: row.r#type,
             height: row.height,
+        category: row.category,
+        latitude: row.latitude.and_then(|v| v.to_f64()),
+        longitude: row.longitude.and_then(|v| v.to_f64()),
+        reports_count: row.reports_count.unwrap_or(0),
         })
-        .collect()
-    } else {
-        sqlx::query!(
-            "SELECT id, name, type, height FROM objects WHERE region_id = $1 ORDER BY name",
-            id
+    .collect();
+    let vertices = sqlx::query!(
+        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Вершина' ORDER BY name LIMIT 24",
+        &subregion_ids
         )
         .fetch_all(&pool)
         .await
@@ -477,9 +515,69 @@ async fn get_region(
             name: row.name,
             object_type: row.r#type,
             height: row.height,
+        category: None,
+        latitude: row.latitude.and_then(|v| v.to_f64()),
+        longitude: row.longitude.and_then(|v| v.to_f64()),
+        reports_count: 0,
         })
-        .collect()
-    };
+    .collect();
+    let glaciers = sqlx::query!(
+        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Ледник' ORDER BY name LIMIT 24",
+        &subregion_ids
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+    .into_iter()
+    .map(|row| ObjectInfo {
+        id: row.id,
+        name: row.name,
+        object_type: row.r#type,
+        height: row.height,
+        category: None,
+        latitude: row.latitude.and_then(|v| v.to_f64()),
+        longitude: row.longitude.and_then(|v| v.to_f64()),
+        reports_count: 0,
+    })
+    .collect();
+    let infrastructure = sqlx::query!(
+        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Инфраструктура' ORDER BY name LIMIT 24",
+        &subregion_ids
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+    .into_iter()
+    .map(|row| ObjectInfo {
+        id: row.id,
+        name: row.name,
+        object_type: row.r#type,
+        height: row.height,
+        category: None,
+        latitude: row.latitude.and_then(|v| v.to_f64()),
+        longitude: row.longitude.and_then(|v| v.to_f64()),
+        reports_count: 0,
+    })
+    .collect();
+    let nature = sqlx::query!(
+        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Природа' ORDER BY name LIMIT 24",
+        &subregion_ids
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+    .into_iter()
+    .map(|row| ObjectInfo {
+        id: row.id,
+        name: row.name,
+        object_type: row.r#type,
+        height: row.height,
+        category: None,
+        latitude: row.latitude.and_then(|v| v.to_f64()),
+        longitude: row.longitude.and_then(|v| v.to_f64()),
+        reports_count: 0,
+    })
+    .collect();
 
     // Получаем рекурсивно все подрегионы и считаем объекты
     let count_row = sqlx::query!(
@@ -516,14 +614,61 @@ async fn get_region(
     .unwrap_or_default();
     let region_breadcrumbs = build_region_breadcrumbs_common(Some(region.id), &all_regions);
 
+    // Получаем высочайшие вершины (limit 21, по убыванию высоты)
+    let heightest_peaks = sqlx::query!(
+        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Вершина' AND height IS NOT NULL ORDER BY height DESC LIMIT 21",
+        &subregion_ids
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+    .into_iter()
+    .map(|row| ObjectInfo {
+        id: row.id,
+        name: row.name,
+        object_type: row.r#type,
+        height: row.height,
+        category: None,
+        latitude: row.latitude.and_then(|v| v.to_f64()),
+        longitude: row.longitude.and_then(|v| v.to_f64()),
+        reports_count: 0,
+    })
+    .collect();
+    // Получаем высочайшие перевалы (limit 21, по убыванию высоты)
+    let heightest_passes = sqlx::query!(
+        "SELECT id, name, type, height, category, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Перевал' AND height IS NOT NULL ORDER BY height DESC LIMIT 21",
+        &subregion_ids
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+    .into_iter()
+    .map(|row| ObjectInfo {
+        id: row.id,
+        name: row.name,
+        object_type: row.r#type,
+        height: row.height,
+        category: row.category,
+        latitude: row.latitude.and_then(|v| v.to_f64()),
+        longitude: row.longitude.and_then(|v| v.to_f64()),
+        reports_count: 0,
+    })
+    .collect();
+
     Ok(Html(RegionPageTemplate {
         region: region_info,
         stats,
         subregions,
-        objects,
         active_type,
         regions,
         region_breadcrumbs,
+        passes,
+        vertices,
+        glaciers,
+        infrastructure,
+        nature,
+        heightest_peaks,
+        heightest_passes,
     }.render().unwrap()))
 }
 
@@ -720,6 +865,10 @@ async fn get_object(
             name: row.name.clone(),
             object_type: row.r#type.clone(),
             height: row.height,
+            category: None,
+            latitude: row.latitude.and_then(|v| v.to_f64()),
+            longitude: row.longitude.and_then(|v| v.to_f64()),
+            reports_count: 0,
         };
         let name_lower = row.name.to_lowercase();
         if name_lower.contains("верш") || name_lower.contains("пик") {

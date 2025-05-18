@@ -7,7 +7,7 @@
         class="breadcrumb breadcrumb--fixed touch-focused disable-prevent-link-clicks compensate-for-scrollbar no-scrollbar">
         <a href="/regions">Все районы</a>
         {% for region in trip.region_breadcrumbs %}
-            / <a href="/regions/{{ region.id }}">{{ region.name }}</a>
+        / <a href="/regions/{{ region.id }}">{{ region.name }}</a>
         {% endfor %}
         <div class="breadcrumb__toggler"></div>
     </div>
@@ -47,6 +47,13 @@
                     </div>
                     {% endif %}
 
+                    {% if trip.city.is_some() %}
+                    <div class="trip__param">
+                        <strong>Город:</strong>
+                        <span>{{ trip.city.as_ref().unwrap() }}</span>
+                    </div>
+                    {% endif %}
+
                     <div class="trip__param">
                         <strong>Маршрут:</strong>
                         <div class="trip-path-view"><a href="#"
@@ -58,20 +65,28 @@
                             {% for item in trip.route %}
                             <div class="trip__path-sitem" data-id="{{ item.id }}">
                                 {% if item.object_id.is_some() %}
-                                <div class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
-                                <div class="sobject" data-latlng="{{ item.latitude.unwrap_or(0.0) }},{{ item.longitude.unwrap_or(0.0) }}" data-id="{{ item.object_id.as_ref().unwrap() }}">
-                                    <a href="/object/{{ item.object_id.as_ref().unwrap() }}" class="sobject__link">{{ item.name.as_deref().unwrap_or("Без названия") }}</a>
-                                    <span class="sobject__params">
-                                        {% if item.object_type.is_some() %}{{ item.object_type.as_deref().unwrap() }}{% endif %}
-                                        {% if item.height.is_some() %}, {{ item.height.as_ref().unwrap() }} м{% endif %}
-                                        {% if item.latitude.is_some() %}
+                                <div
+                                    class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                    <div class="sobject"
+                                        data-latlng="{{ item.latitude.unwrap_or(0.0) }},{{ item.longitude.unwrap_or(0.0) }}"
+                                        data-id="{{ item.object_id.as_ref().unwrap() }}">
+                                        <a href="/objects/{{ item.object_id.as_ref().unwrap() }}"
+                                            class="sobject__link">{{ item.name.as_deref().unwrap_or("Без названия")
+                                            }}</a>
+                                        <span class="sobject__params">
+                                            {% if item.object_type.is_some() %}{{ item.object_type.as_deref().unwrap()
+                                            }}{% endif %}
+                                            {% if item.category.is_some() %} ({{ item.category.as_ref().unwrap() }}{% if item.height.is_some() %}, {{ item.height.as_ref().unwrap() }} м{% endif %}){% else if item.height.is_some() %} ({{ item.height.as_ref().unwrap() }} м){% endif %}
+                                            {% if item.latitude.is_some() %}
                                             {% if item.longitude.is_some() %}
-                                                <i class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited" data-title="Есть координаты"></i>
+                                            <i class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                data-title="Есть координаты"></i>
                                             {% endif %}
-                                        {% endif %}
-                                    </span>
+                                            {% endif %}
+                                            <i class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited" data-title="{{ item.trip_count.unwrap_or(0) }} отчётов"><sup> {{ item.trip_count.unwrap_or(0) }}</sup></i>
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
                                 {% else %}
                                 <div class="trip__path-item trip__path-item--wo-object color-muted-light ">
                                     {{ item.name.as_deref().unwrap_or("Без названия") }}
@@ -83,13 +98,15 @@
                         </div>
                     </div>
 
+                    {% if trip.tlib_url.is_some() %}
                     <div class="trip__actions">
                         <div class="trip__action">
-                            <a href="https://web.archive.org/web/20241010115306mp_/http://tlib.ru/doc.aspx?id=43919&amp;page=1"
-                                target="_blank" class="btn btn--primary"><i class="fa fa-arrow-circle-down"></i> Скачать
-                                отчёт на tlib.ru <span class="font-smaller muted-50"> (241 МБ)</span></a>
+                            <a href="{{ trip.tlib_url.as_ref().unwrap() }}" target="_blank" class="btn btn--primary">
+                                <i class="fa fa-arrow-circle-down"></i> Скачать отчёт на tlib.ru
+                            </a>
                         </div>
                     </div>
+                    {% endif %}
 
                 </div>
 

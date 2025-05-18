@@ -12,7 +12,7 @@ CREATE TABLE regions (
 CREATE TABLE objects (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
-    type TEXT NOT NULL,
+    type TEXT,
     region_id INTEGER,
     country_code TEXT,
     country_full TEXT,
@@ -24,6 +24,8 @@ CREATE TABLE objects (
     border_distance DECIMAL(9,3),
     info_source TEXT,
     updated_at TEXT,
+    category TEXT,
+    slope_type TEXT,
     FOREIGN KEY (region_id) REFERENCES regions(id),
     FOREIGN KEY (parent_id) REFERENCES objects(id)
 );
@@ -31,12 +33,13 @@ CREATE TABLE objects (
 -- Create trips table
 CREATE TABLE trips (
     id INTEGER PRIMARY KEY,
-    type TEXT NOT NULL,
+    type TEXT,
     region_id INTEGER,
     difficulty TEXT,
     season TEXT,
     author TEXT,
     city TEXT,
+    tlib_url TEXT,
     FOREIGN KEY (region_id) REFERENCES regions(id)
 );
 
@@ -51,7 +54,7 @@ CREATE TABLE trip_route (
     FOREIGN KEY (object_id) REFERENCES objects(id)
 );
 
--- Create photos table
+-- Create photos table (for future use)
 CREATE TABLE photos (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     url TEXT NOT NULL,

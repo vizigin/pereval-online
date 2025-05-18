@@ -20,6 +20,38 @@ logging.basicConfig(
     ]
 )
 
+# Новый фиксированный список корневых регионов по названию
+ROOT_REGION_NAMES = [
+    "Кавказ",
+    "Памир и Памиро-Алай",
+    "Тянь-Шань",
+    "Прибайкалье и Забайкалье",
+    "Саяны",
+    "Алтай",
+    "Джунгарский Алатау",
+    "Крым",
+    "Дальний Восток",
+    "Гималаи",
+    "Альпы",
+    "Урал",
+    "Северо-Запад России",
+    "Средняя Сибирь",
+    "Тавр",
+    "Высокий Атлас",
+    "Карпаты",
+    "Северо-Восточная Сибирь",
+    "Кузнецкий Алатау",
+    "Островная Арктика",
+    "Восточно-Европейская равнина",
+    "Западная Сибирь",
+    "Горы Южной Сибири",
+    "Тыва",
+    "Средняя Азия",
+]
+
+def is_root_region_name(name):
+    return name in ROOT_REGION_NAMES
+
 # --- Вынесенная функция парсинга высоты ---
 def parse_height(text: str) -> Optional[int]:
     if not text:
@@ -183,17 +215,28 @@ class DataImporter:
             with open(html_path, 'r', encoding='utf-8') as f:
                 soup = BeautifulSoup(f.read(), 'html.parser')
 
-            # Extract title with improved validation
-            title = None
-            title_elem = soup.find('h1')
-            if title_elem:
-                title = title_elem.text.strip()
-                # Не удаляем тип из названия, сохраняем как есть
-                # title = re.sub(r'^(Перевал|Вершина|Ледник|Приют|База|Лагерь|Хижина|Озеро|Река|Водопад|Пещера)\s+', '', title)
-                title = re.sub(r'\s*-\s*[^-]+$', '', title)  # Remove everything after last dash
-            if not title:
-                logging.error(f"Missing or invalid title in {html_path}")
-                return None
+            # --- Извлечение имени объекта ---
+            # Основываясь на том, что структура <h1><span class="title-text">...</span></h1> однозначна,
+            # и настоящее имя объекта находится *только* в <span class="title-text">.
+            object_name = None
+            title_span = soup.find('span', class_='title-text')
+            
+            if title_span and title_span.text: # Проверяем наличие текста перед strip()
+                temp_name = title_span.text.strip()
+                if temp_name: # Убеждаемся, что очищенный текст не пустой
+                    object_name = temp_name
+                    logging.info(f"[DEBUG] object_id={object_id} Имя из <span class='title-text'>: '{object_name}'")
+                else:
+                    logging.warning(f"[DEBUG] object_id={object_id} <span class='title-text'> найден, но его очищенный текст пуст.")
+            else:
+                logging.warning(f"[DEBUG] object_id={object_id} <span class='title-text'> не найден или не имеет текстового содержимого.")
+
+            # Этот лог покажет имя, которое мы считаем окончательным *до* выполнения промежуточного кода.
+            logging.info(f"[DEBUG] object_id={object_id} object_name ПЕРЕД промежуточным кодом: '{object_name}'")
+            
+            if not object_name:
+                logging.error(f"КРИТИЧНО: object_id={object_id} Не удалось извлечь имя объекта из <span class='title-text'>. Пропускаем объект.")
+                return None # Пропускаем объект, если имя не найдено
 
             # Improved object type detection
             type_indicators = {
@@ -350,15 +393,28 @@ class DataImporter:
 
             # 1. Try specific 'object__params' block first (most reliable)
             params_div = soup.find('div', class_='object__params')
+            category = None
+            slope_type = None
             if params_div:
                 for param in params_div.find_all('div', class_='object__param'):
                     title_span = param.find('span', class_='object__param-title')
                     value_span = param.find('span', class_='object__param-value')
-                    if title_span and value_span and 'высота' in title_span.get_text(strip=True).lower():
-                        h_candidate = parse_height(value_span.get_text())
-                        if h_candidate is not None:
-                            height = h_candidate
-                            break # Found height in object__params
+                    if title_span and value_span:
+                        title = title_span.get_text(strip=True).lower()
+                        value = value_span.get_text(strip=True)
+                        if 'высота' in title:
+                            h_candidate = parse_height(value)
+                            if h_candidate is not None:
+                                height = h_candidate
+                        if 'категор' in title:
+                            # Оставляем только значения 1А, 2Б, 3А, 4Б, 5А, 6Б и т.п. в любом месте строки
+                            m = re.search(r'([1-6][АБ])', value.upper())
+                            if m:
+                                category = m.group(1)
+                            else:
+                                category = None
+                        if 'тип склона' in title:
+                            slope_type = value
             
             # 2. If not found in object__params, try 'table.height'
             if height is None:
@@ -510,28 +566,6 @@ class DataImporter:
                         alt_names = text
                         break
 
-            # Категория (для перевалов)
-            category = None
-            if object_type == 1:  # Перевал
-                for p in soup.find_all(['p', 'div']):
-                    text = p.get_text().lower()
-                    if 'категория' in text:
-                        m = re.search(r'категория[:\s]*([\w\d\-]+)', text)
-                        if m:
-                            category = m.group(1)
-                            break
-
-            # Тип склона (для перевалов)
-            slope_type = None
-            if object_type == 1:
-                for p in soup.find_all(['p', 'div']):
-                    text = p.get_text().lower()
-                    if 'тип склона' in text:
-                        m = re.search(r'тип склона[:\s]*([\w\d\- ]+)', text)
-                        if m:
-                            slope_type = m.group(1)
-                            break
-
             # Что соединяет (для перевалов)
             connects = None
             if object_type == 1:
@@ -592,10 +626,12 @@ class DataImporter:
                         glacier_history = text
                         break
 
+            logging.info(f"[DEBUG] PRE-RESULT object_id={object_id} object_name='{object_name}' category='{category}' slope_type='{slope_type}'")
+
             # Collect results with validation
             result = {
                 'id': object_id,
-                'name': title,
+                'name': object_name,
                 'type_id': object_type,
                 'region': region,
                 'region_id': region_id,
@@ -700,10 +736,9 @@ class DataImporter:
             else:
                 breadcrumb = soup.find('div', class_='breadcrumb')
                 if breadcrumb:
-                    for a in breadcrumb.find_all('a'):
-                        if 'кавказ' in a.text.lower():
-                            region_name = a.text.strip()
-                            break
+                    region_links = [a for a in breadcrumb.find_all('a') if '/region/' in a.get('href', '')]
+                    if region_links:
+                        region_name = region_links[-1].text.strip()
             if region_name:
                 for rid, rdata in self.regions.items():
                     if rdata['name'] == region_name:
@@ -716,28 +751,94 @@ class DataImporter:
             if meta_author:
                 author = meta_author.get('content')
             if not author:
-                author_match = re.search(r'Автор[:\s]+([А-Яа-яЁёA-Za-z\-\. ]+?)(?:[,.\n]|\sМаршрут|$)', soup.text)
+                # Улучшенная регулярка: ищет Фамилия И.О. или Фамилия И. О.
+                author_match = re.search(r'Автор[:\s]+([А-Яа-яЁёA-Za-z\-]+\s[А-ЯЁA-Z]\.[А-ЯЁA-Z]\.|[А-Яа-яЁёA-Za-z\-]+\s[А-ЯЁA-Z]\.)', soup.text)
                 if author_match:
                     author = author_match.group(1).strip()
-            
+                else:
+                    # fallback: ищем "Автор: ..." до конца строки
+                    author_match = re.search(r'Автор[:\s]+([^\n\r]+)', soup.text)
+                    if author_match:
+                        author = author_match.group(1).strip()
+
             # Получаем город автора
             city = None
             meta_city = soup.find('meta', attrs={'name': 'author_city'})
             if meta_city:
                 city = meta_city.get('content')
-            
+            if not city:
+                # Пытаемся найти город в тексте рядом с автором
+                city_match = re.search(r'(?:г\.|город)\s*([А-Яа-яA-Za-z\- ]+)', soup.text)
+                if city_match:
+                    city = city_match.group(1).strip()
+            if not city:
+                # Новый способ: ищем div.trip__param > strong: 'Город:' (точное совпадение)
+                for param in soup.find_all('div', class_='trip__param'):
+                    strong = param.find('strong')
+                    debug_text = param.get_text(separator=' ', strip=True)
+                    if trip_id == 6422:
+                        logging.info(f"[DEBUG][trip_id=6422] trip__param raw: '{debug_text}'")
+                        if strong:
+                            logging.info(f"[DEBUG][trip_id=6422] strong: '{strong.get_text(strip=True)}'")
+                    if strong and strong.get_text(strip=True).lower() == 'город:':
+                        # Берём текст после strong
+                        strong.extract()
+                        text = param.get_text(separator=' ', strip=True)
+                        city = text.strip()
+                        logging.info(f"[DEBUG][trip_id=6422] Город после extract: '{city}'")
+                        break
+
             # Парсим маршрут
             route = []
             for i, sitem in enumerate(soup.select('.trip__path-sitem')):
-                link = sitem.find('a', href=re.compile(r'/object/\\d+'))
+                link = sitem.find('a', href=re.compile(r'object/\d+'))
                 if link:
-                    object_id = int(re.search(r'/object/(\\d+)', link['href']).group(1))
+                    m = re.search(r'object/(\d+)', link['href'])
+                    if m:
+                        object_id = int(m.group(1))
+                        # Явно проверяем, что object_id есть среди self.objects
+                        if object_id not in self.objects:
+                            object_id = None
+                    else:
+                        object_id = None
                     name = link.text.strip()
                 else:
                     object_id = None
+                    # Удаляем все <i> (иконки с числами) из DOM
+                    for tag in sitem.find_all('i'):
+                        tag.decompose()
                     name = sitem.get_text(strip=True)
+                    # Попробовать найти объект по имени, если это sobject
+                    name_norm = name.lower().replace('ё', 'е').strip()
+                    # Удаляем тип объекта в начале (оз., пер., р., лед. и т.д.)
+                    name_main = re.sub(r'^(оз\.|пер\.|р\.|лед\.|г\.|пик|дол\.|ур\.|пос\.|ст\.|с\.|вдп\.|хр\.|пл\.|влк\.|пл\.|плато|урочище|д\.|б\.|м\.|\s)+', '', name_norm).strip()
+                    # Удаляем в конце: (1Б, 3 400 м)2232 или (1Б, 3 400 м) и/или просто id
+                    name_main = re.sub(r'\(.*?\)\d{3,6}$', '', name_main).strip()
+                    name_main = re.sub(r'\(.*?\)$', '', name_main).strip()
+                    name_main = re.sub(r'\d{3,6}$', '', name_main).strip()
+                    for obj in self.objects.values():
+                        obj_name_norm = obj['name'].lower().replace('ё', 'е').strip()
+                        obj_name_main = re.sub(r'^(оз\.|пер\.|р\.|лед\.|г\.|пик|дол\.|ур\.|пос\.|ст\.|с\.|вдп\.|хр\.|пл\.|влк\.|пл\.|плато|урочище|д\.|б\.|м\.|\s)+', '', obj_name_norm).strip()
+                        obj_name_main = re.sub(r'\(.*?\)\d{3,6}$', '', obj_name_main).strip()
+                        obj_name_main = re.sub(r'\(.*?\)$', '', obj_name_main).strip()
+                        obj_name_main = re.sub(r'\d{3,6}$', '', obj_name_main).strip()
+                        if name_main == obj_name_main:
+                            object_id = obj['id']
+                            break
                 route.append({'order_num': i, 'object_id': object_id, 'name': name})
             
+            # --- Парсим ссылку на tlib ---
+            tlib_url = None
+            # Ищем любую ссылку на tlib.ru
+            for a in soup.find_all('a', href=True):
+                href = a['href']
+                if 'tlib.ru' in href:
+                    if href.startswith('http'):  # уже полная ссылка
+                        tlib_url = href
+                    else:
+                        tlib_url = 'http://' + href.lstrip('/')
+                    break
+
             return {
                 'id': trip_id,
                 'r_type': trip_type,
@@ -746,7 +847,8 @@ class DataImporter:
                 'region_id': region_id,
                 'author': author,
                 'city': city,
-                'route': route
+                'route': route,
+                'tlib_url': tlib_url
             }
         except Exception as e:
             logging.error(f"Error parsing trip {html_path}: {e}")
@@ -880,8 +982,6 @@ class DataImporter:
         # Далее всё как раньше: объекты, trips, фото
         object_files = glob.glob(os.path.join(directory, 'object', '*', 'index.html'))
         print(f"Found {len(object_files)} object files")  # Debug output
-        object_files = object_files[:50]
-        print(f"Processing first 50 object files")  # Debug output
         object_ids = []
         for object_file in object_files:
             print(f"Processing object file: {object_file}")  # Debug output
@@ -899,8 +999,6 @@ class DataImporter:
         # Process trips
         trip_files = glob.glob(os.path.join(directory, 'trip', '*', 'index.html'))
         print(f"Found {len(trip_files)} trip files")  # Debug output
-        trip_files = trip_files[:50]
-        print(f"Processing first 50 trip files")  # Debug output
         for trip_file in trip_files:
             print(f"Processing trip file: {trip_file}")  # Debug output
             with open(trip_file, 'r', encoding='utf-8') as f:
@@ -971,20 +1069,21 @@ class DataImporter:
             type_str = self.object_types.get(obj['type_id'], None)
             logging.info(f"[SQL GENERATE] id={obj['id']} name={obj['name']} height={obj.get('height')}")
             sql.append(f"""INSERT INTO objects (id, name, type, region_id, country_code, country_full, parent_id, height, \
-                latitude, longitude, description, border_distance, info_source, updated_at)
+                latitude, longitude, description, border_distance, info_source, updated_at, category, slope_type)
                 VALUES ({obj['id']}, {self.sql_value(obj['name'])}, {self.sql_value(type_str)}, {self.sql_value(obj['region_id'])}, {self.sql_value(obj.get('country_code'))}, {self.sql_value(obj.get('country_full'))}, \
                 {self.sql_value(obj.get('parent_id'))}, {self.sql_value(obj.get('height'))}, \
                 {self.sql_value(obj.get('latitude'))}, {self.sql_value(obj.get('longitude'))}, \
                 {self.sql_value(obj.get('description'))}, {self.sql_value(obj.get('border_distance'))}, \
-                {self.sql_value(obj.get('info_source'))}, {self.sql_value(obj.get('updated_at'))});""")
+                {self.sql_value(obj.get('info_source'))}, {self.sql_value(obj.get('updated_at'))},
+                {self.sql_value(obj.get('category'))}, {self.sql_value(obj.get('slope_type'))});""")
             print(f"Generated SQL for object: {obj['name']}")  # Debug output
         
         # Add trips
         for trip in self.trips.values():
             type_str = trip['r_type']
-            sql.append(f"""INSERT INTO trips (id, type, region_id, difficulty, season, author, city)
+            sql.append(f"""INSERT INTO trips (id, type, region_id, difficulty, season, author, city, tlib_url)
                 VALUES ({trip['id']}, {self.sql_value(type_str)}, {self.sql_value(trip['region_id'])}, 
-                {self.sql_value(trip.get('difficulty'))}, {self.sql_value(trip.get('season'))}, {self.sql_value(trip.get('author'))}, {self.sql_value(trip.get('city'))});""")
+                {self.sql_value(trip.get('difficulty'))}, {self.sql_value(trip.get('season'))}, {self.sql_value(trip.get('author'))}, {self.sql_value(trip.get('city'))}, {self.sql_value(trip.get('tlib_url'))});""")
             print(f"Generated SQL for trip: {trip['id']}")  # Debug output
             # Добавляем маршрут
             for point in trip.get('route', []):
