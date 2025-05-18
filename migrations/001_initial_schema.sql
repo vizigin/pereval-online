@@ -3,7 +3,6 @@ CREATE TABLE regions (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     parent_id INTEGER,
-    country_code TEXT,
     root_region_id INTEGER,
     FOREIGN KEY (parent_id) REFERENCES regions(id),
     FOREIGN KEY (root_region_id) REFERENCES regions(id)
@@ -14,7 +13,7 @@ CREATE TABLE objects (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     type TEXT NOT NULL,
-    region_id INTEGER NOT NULL,
+    region_id INTEGER,
     country_code TEXT,
     country_full TEXT,
     parent_id INTEGER,
@@ -22,16 +21,9 @@ CREATE TABLE objects (
     latitude DECIMAL(9,6),
     longitude DECIMAL(9,6),
     description TEXT,
-    area DECIMAL(9,3),
-    complexity TEXT,
-    slope_type TEXT,
     border_distance DECIMAL(9,3),
     info_source TEXT,
     updated_at TEXT,
-    alt_names TEXT,
-    category TEXT,
-    connects TEXT,
-    glacier_history TEXT,
     FOREIGN KEY (region_id) REFERENCES regions(id),
     FOREIGN KEY (parent_id) REFERENCES objects(id)
 );
@@ -39,13 +31,24 @@ CREATE TABLE objects (
 -- Create trips table
 CREATE TABLE trips (
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
     type TEXT NOT NULL,
     region_id INTEGER,
-    start_date DATE,
-    end_date DATE,
-    description TEXT,
+    difficulty TEXT,
+    season TEXT,
+    author TEXT,
+    city TEXT,
     FOREIGN KEY (region_id) REFERENCES regions(id)
+);
+
+-- Create trip_route table
+CREATE TABLE trip_route (
+    id SERIAL PRIMARY KEY,
+    trip_id INTEGER NOT NULL,
+    order_num INTEGER NOT NULL,
+    object_id INTEGER,
+    name TEXT,
+    FOREIGN KEY (trip_id) REFERENCES trips(id),
+    FOREIGN KEY (object_id) REFERENCES objects(id)
 );
 
 -- Create photos table
@@ -70,7 +73,6 @@ CREATE INDEX idx_objects_type ON objects(type);
 CREATE INDEX idx_objects_coordinates ON objects(latitude, longitude);
 CREATE INDEX idx_trips_region_id ON trips(region_id);
 CREATE INDEX idx_trips_type ON trips(type);
-CREATE INDEX idx_trips_dates ON trips(start_date, end_date);
 CREATE INDEX idx_photos_object_id ON photos(object_id);
 CREATE INDEX idx_photos_trip_id ON photos(trip_id);
 CREATE INDEX idx_photos_taken_at ON photos(taken_at);

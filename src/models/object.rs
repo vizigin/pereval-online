@@ -38,7 +38,7 @@ pub struct Object {
     pub id: i32,
     pub name: String,
     pub r#type: String,
-    pub region_id: i32,
+    pub region_id: Option<i32>,
     pub parent_id: Option<i32>,
     pub height: Option<i32>,
     #[serde(with = "crate::models::object::bigdecimal_serde")]
@@ -72,7 +72,7 @@ impl Object {
 pub struct CreateObject {
     pub name: String,
     pub r#type: String,
-    pub region_id: i32,
+    pub region_id: Option<i32>,
     pub parent_id: Option<i32>,
     pub height: Option<i32>,
     #[serde(with = "crate::models::object::bigdecimal_serde")]

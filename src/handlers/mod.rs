@@ -131,6 +131,26 @@ pub struct ObjectTemplateData {
     pub updated_at: Option<String>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct TripTemplateData {
+    pub id: i32,
+    pub r_type: String,
+    pub difficulty: Option<String>,
+    pub region_name: Option<String>,
+    pub season: Option<String>,
+    pub author: Option<String>,
+    pub city: Option<String>,
+    pub region_breadcrumbs: Vec<RegionBreadcrumb>,
+    pub title_text: String,
+}
+
+#[derive(Template)]
+#[template(path = "trip.html")]
+pub struct TripTemplate {
+    pub trip: TripTemplateData,
+    pub regions: Vec<RegionInfo>,
+}
+
 // Кастомный фильтр для форматирования числа с пробелами между тысячами
 pub fn format_number(value: &i32) -> String {
     let s = value.to_string();
@@ -143,6 +163,25 @@ pub fn format_number(value: &i32) -> String {
         out.push(*c);
     }
     out.chars().rev().collect()
+}
+
+// НОВАЯ ОБЩАЯ ФУНКЦИЯ
+fn build_region_breadcrumbs_common(region_id: Option<i32>, regions: &[(i32, String, Option<i32>)]) -> Vec<RegionBreadcrumb> {
+    let mut breadcrumbs = Vec::new();
+    let mut current_id = region_id;
+    while let Some(rid) = current_id {
+        if let Some((id, name, parent_id)) = regions.iter().find(|(r_id, _, _)| *r_id == rid) {
+            breadcrumbs.push(RegionBreadcrumb { id: *id, name: name.clone() });
+            current_id = *parent_id;
+        } else {
+            // Если регион не найден, прерываемся.
+            // Можно добавить логирование, если нужно отследить такой случай.
+            // println!("[DEBUG] build_region_breadcrumbs_common: Region with id {:?} not found in provided list.", rid);
+            break;
+        }
+    }
+    breadcrumbs.reverse();
+    breadcrumbs
 }
 
 pub fn router() -> Router<PgPool> {
@@ -252,7 +291,7 @@ async fn list_regions(
     let regions = sqlx::query_as!(
         Region,
         r#"
-        SELECT id, name, parent_id, country_code, root_region_id
+        SELECT id, name, parent_id, root_region_id
         FROM regions
         ORDER BY name
         LIMIT $1
@@ -402,13 +441,12 @@ async fn create_region(
     let result = sqlx::query_as!(
         Region,
         r#"
-        INSERT INTO regions (name, parent_id, country_code, root_region_id)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, name, parent_id, country_code, root_region_id
+        INSERT INTO regions (name, parent_id, root_region_id)
+        VALUES ($1, $2, $3)
+        RETURNING id, name, parent_id, root_region_id
         "#,
         region.name,
         region.parent_id,
-        region.country_code,
         region.root_region_id
     )
     .fetch_one(&pool)
@@ -447,7 +485,7 @@ async fn get_object(
     let object = sqlx::query!(
         r#"
         SELECT o.id, o.name, o.type as "type!", o.region_id as "region_id?", o.parent_id, o.height,
-               o.latitude, o.longitude, o.description, o.alt_names, r.name as region_name, o.country_code, o.country_full, o.border_distance, o.info_source, o.updated_at
+               o.latitude, o.longitude, o.description, r.name as region_name, o.country_full, o.border_distance, o.info_source, o.updated_at
         FROM objects o
         LEFT JOIN regions r ON o.region_id = r.id
         WHERE o.id = $1
@@ -472,22 +510,7 @@ async fn get_object(
     .map(|r| (r.id, r.name, r.parent_id))
     .collect();
 
-    fn build_region_breadcrumbs(region_id: Option<i32>, regions: &[(i32, String, Option<i32>)]) -> Vec<RegionBreadcrumb> {
-        let mut breadcrumbs = Vec::new();
-        let mut current_id = region_id;
-        while let Some(rid) = current_id {
-            if let Some((id, name, parent_id)) = regions.iter().find(|(id, _, _)| *id == rid) {
-                breadcrumbs.push(RegionBreadcrumb { id: *id, name: name.clone() });
-                current_id = *parent_id;
-            } else {
-                break;
-            }
-        }
-        breadcrumbs.reverse();
-        breadcrumbs
-    }
-
-    let region_breadcrumbs = build_region_breadcrumbs(object.region_id, &regions);
+    let region_breadcrumbs = build_region_breadcrumbs_common(object.region_id, &regions);
 
     let data = ObjectTemplateData {
         id: object.id,
@@ -498,8 +521,8 @@ async fn get_object(
         lat,
         lng,
         description: object.description,
-        alt_names: object.alt_names,
-        country: object.country_code,
+        alt_names: None,
+        country: None,
         full_address: object.country_full,
         border_distance: object.border_distance.and_then(|v| v.to_f64()),
         region_breadcrumbs,
@@ -553,9 +576,9 @@ async fn list_trips(
     let trips = sqlx::query_as!(
         Trip,
         r#"
-        SELECT id, name, type as "type!", region_id, start_date, end_date, description
+        SELECT id, type as "type!", region_id, difficulty, season, author, city
         FROM trips
-        ORDER BY start_date DESC NULLS LAST
+        ORDER BY id DESC
         LIMIT $1
         OFFSET $2
         "#,
@@ -572,10 +595,32 @@ async fn get_trip(
     State(pool): State<PgPool>,
     Path(id): Path<i32>,
 ) -> Result<impl IntoResponse, AppError> {
+    // 1. ЗАГРУЗКА ДАННЫХ О ПОХОДЕ (TRIP)
+    // ВРЕМЕННЫЙ УПРОЩЕННЫЙ ЗАПРОС ДЛЯ ДИАГНОСТИКИ region_id
+    let trip_check = sqlx::query!(
+        r#"
+        SELECT id, region_id
+        FROM trips
+        WHERE id = $1
+        "#,
+        id
+    )
+    .fetch_optional(&pool)
+    .await?;
+
+    if let Some(ref record) = trip_check {
+        println!("[TEMP DEBUG] Checked trip id: {}, Checked region_id: {:?}", record.id, record.region_id);
+    } else {
+        println!("[TEMP DEBUG] Trip with id {} not found for region_id check.", id);
+        // Дальнейший код оригинальной загрузки trip выполнится и вернет NotFound
+    }
+
+    // Оригинальная загрузка trip оставлена пока как есть, 
+    // но теперь мы будем знать, что приходит в trip_check.region_id
     let trip = sqlx::query_as!(
         Trip,
         r#"
-        SELECT id, name, type as "type!", region_id, start_date, end_date, description
+        SELECT id, type as "type!", region_id, difficulty, season, author, city
         FROM trips
         WHERE id = $1
         "#,
@@ -585,7 +630,58 @@ async fn get_trip(
     .await?
     .ok_or_else(|| AppError::NotFound(format!("Trip {} not found", id)))?;
 
-    Ok(Json(trip))
+    // Получаем все регионы с parent_id
+    let regions: Vec<(i32, String, Option<i32>)> = sqlx::query_as!(
+        RegionWithParent,
+        "SELECT id, name, parent_id FROM regions"
+    )
+    .fetch_all(&pool)
+    .await?
+    .into_iter()
+    .map(|r| (r.id, r.name, r.parent_id))
+    .collect();
+
+    // DEBUG: выводим region_id и массив регионов
+    println!("[DEBUG] trip.id={} region_id={:?}", trip.id, trip.region_id);
+    for (reg_id, reg_name, reg_parent_id) in &regions {
+        println!("[DEBUG] region from list: id={} name='{}' parent_id={:?}", reg_id, reg_name, reg_parent_id);
+    }
+
+    let region_breadcrumbs = build_region_breadcrumbs_common(trip.region_id, &regions);
+    // DEBUG: выводим результат построения хлебных крошек
+    println!("[DEBUG] region_breadcrumbs for trip {}: {:?}", trip.id, region_breadcrumbs);
+
+    let region_name = region_breadcrumbs.last().map(|r| r.name.clone());
+    let mut parts = vec![];
+    parts.push(trip.r#type.clone());
+    if let Some(d) = &trip.difficulty {
+        parts.push(d.clone());
+    }
+    if let Some(region) = &region_name {
+        parts.push(region.clone());
+    }
+    if let Some(season) = &trip.season {
+        parts.push(season.clone());
+    }
+    let mut title_text = parts.join(", ");
+    if let Some(author) = &trip.author {
+        title_text.push_str(&format!(" ({})", author));
+    }
+
+    let trip_data = TripTemplateData {
+        id: trip.id,
+        r_type: trip.r#type,
+        difficulty: trip.difficulty,
+        region_name,
+        season: trip.season,
+        author: trip.author,
+        city: trip.city,
+        region_breadcrumbs,
+        title_text,
+    };
+
+    let regions_for_aside = get_regions_with_count(&pool).await;
+    Ok(Html(TripTemplate { trip: trip_data, regions: regions_for_aside }.render().unwrap()))
 }
 
 async fn create_trip(
@@ -595,16 +691,16 @@ async fn create_trip(
     let result = sqlx::query_as!(
         Trip,
         r#"
-        INSERT INTO trips (name, type, region_id, start_date, end_date, description)
+        INSERT INTO trips (type, region_id, difficulty, season, author, city)
         VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, name, type as "type!", region_id, start_date, end_date, description
+        RETURNING id, type as "type!", region_id, difficulty, season, author, city
         "#,
-        trip.name,
         trip.r#type,
         trip.region_id,
-        trip.start_date,
-        trip.end_date,
-        trip.description
+        trip.difficulty,
+        trip.season,
+        trip.author,
+        trip.city
     )
     .fetch_one(&pool)
     .await?;

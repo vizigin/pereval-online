@@ -1,0 +1,675 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="content ">
+
+    <div
+        class="breadcrumb breadcrumb--fixed touch-focused disable-prevent-link-clicks compensate-for-scrollbar no-scrollbar">
+        <a href="/regions">Все районы</a>
+        {% for region in trip.region_breadcrumbs %}
+            / <a href="/regions/{{ region.id }}">{{ region.name }}</a>
+        {% endfor %}
+        <div class="breadcrumb__toggler"></div>
+    </div>
+    <div class="breadcrumb-replace"></div>
+
+    <div class="content__inner">
+
+        <div class="trip">
+
+            <h1 class="title">
+                <span class="title-text">
+                    {{ trip.title_text }}
+                </span>
+            </h1>
+
+            <div class="trip__sections">
+                <div class="trip__section trip__section--content">
+
+                    {% if trip.difficulty.is_some() %}
+                    <div class="trip__param">
+                        <strong>Категория сложности:</strong>
+                        <span>{{ trip.difficulty.as_ref().unwrap() }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if trip.season.is_some() %}
+                    <div class="trip__param">
+                        <strong>Сезон похода:</strong>
+                        <span>{{ trip.season.as_ref().unwrap() }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if trip.author.is_some() %}
+                    <div class="trip__param">
+                        <strong>Автор:</strong>
+                        <span>{{ trip.author.as_ref().unwrap() }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="trip__param">
+                        <strong>Маршрут:</strong>
+                        <div class="trip-path-view"><a href="#"
+                                class="btn btn--xxsmall btn--nopadding tooltip js-trip-path-view tooltipstered tooltip-inited"
+                                data-type="vert">↓</a> <a href="#"
+                                class="btn btn--xxsmall btn--nopadding tooltip js-trip-path-view tooltipstered tooltip-inited active cursor-default"
+                                data-type="horz">→</a></div>
+                        <div class="trip__path js-trip-path trip__path--horz">
+                            <div class="trip__path-sitem  " data-id="383794">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    р. Коксу
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383795">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    р. Казан
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383796">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    р. Карабулак
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383797">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>перевал Карабулак">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.720556,79.714722" data-id="1128"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/1128"
+                                                class="sobject__link">пер. Карабулак</a><span class="sobject__params">
+                                                (1А, 3&nbsp;465&nbsp;м)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="9 отчётов"><sup> 9</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="1128"><i class="fas fa-crosshairs"></i><sup>1</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383798">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    оз. Майликоль
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383799">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>перевал Зеркальный">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.699579,79.737429" data-id="1103"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/1103"
+                                                class="sobject__link">пер. Зеркальный</a><span class="sobject__params">
+                                                (1А)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="1 отчёт"><sup> 1</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="1103"><i class="fas fa-crosshairs"></i><sup>2</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383800">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>лед. Юйтас">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.684385,79.726257" data-id="19405"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/19405"
+                                                class="sobject__link">лед. Юйтас</a><span class="sobject__params"><i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="1 отчёт"><sup> 1</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="19405"><i class="fas fa-crosshairs"></i><sup>3</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383801">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>перевал Скорпион">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.683261,79.713529" data-id="1331"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/1331"
+                                                class="sobject__link">пер. Скорпион</a><span class="sobject__params">
+                                                (1Б, 3&nbsp;800&nbsp;м)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="3 отчёта"><sup> 3</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="1331"><i class="fas fa-crosshairs"></i><sup>4</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383802">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    лед. Аймуз
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383803">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>перевал Грозовой (п/п)">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.691142,79.705853" data-id="1073"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/1073"
+                                                class="sobject__link">пер. Грозовой</a><span class="sobject__params">
+                                                (1Б)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="1 отчёт"><sup> 1</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="1073"><i class="fas fa-crosshairs"></i><sup>5</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383804">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>лед. Гляциологов">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.699595,79.687818" data-id="19585"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/19585"
+                                                class="sobject__link">лед. Гляциологов</a><span
+                                                class="sobject__params"><i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="2 отчёта"><sup> 2</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="19585"><i class="fas fa-crosshairs"></i><sup>6</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383805">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    р. Коксай
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383806">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    лед. №293
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383807">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>перевал Физкультурников">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.716181,79.661783" data-id="1399"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/1399"
+                                                class="sobject__link">пер. Физкультурников</a><span
+                                                class="sobject__params"> (2А, 3&nbsp;700&nbsp;м)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="5 отчётов"><sup> 5</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="1399"><i class="fas fa-crosshairs"></i><sup>7</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383808">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>лед. Алтынмуз восточный">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.712534,79.647641" data-id="19369"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/19369"
+                                                class="sobject__link">лед. Алтынмуз</a><span class="sobject__params"><i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="3 отчёта"><sup> 3</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="19369"><i class="fas fa-crosshairs"></i><sup>8</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383809">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>перевал Ахтиар">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.719739,79.638894" data-id="1024"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/1024"
+                                                class="sobject__link">пер. Ахтиар</a><span class="sobject__params"> (1Б,
+                                                3&nbsp;548&nbsp;м)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="2 отчёта"><sup> 2</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="1024"><i class="fas fa-crosshairs"></i><sup>9</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383810">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    лед. №59
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383811">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    перевал Минублак-2
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383812">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>пик Гляциологов (рад)">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.721694,79.65875" data-id="1069"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/1069"
+                                                class="sobject__link">г. Гляциологов</a><span class="sobject__params">
+                                                (3&nbsp;923&nbsp;м)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="9 отчётов"><sup> 9</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="1069"><i class="fas fa-crosshairs"></i><sup>10</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383813">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>перевал Купол">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.726667,79.664167" data-id="1183"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/1183"
+                                                class="sobject__link">пер. Купол</a><span class="sobject__params"> (1Б,
+                                                3&nbsp;800&nbsp;м)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="4 отчёта"><sup> 4</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="1183"><i class="fas fa-crosshairs"></i><sup>11</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383814">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>лед. №63">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.722424,79.664027" data-id="20436"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/20436"
+                                                class="sobject__link">лед. №63</a><span class="sobject__params"><i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="2 отчёта"><sup> 2</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="20436"><i class="fas fa-crosshairs"></i><sup>12</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383815">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>перевал Карабулак">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.720556,79.714722" data-id="1128"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/1128"
+                                                class="sobject__link">пер. Карабулак</a><span class="sobject__params">
+                                                (1А, 3&nbsp;465&nbsp;м)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="9 отчётов"><sup> 9</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="1128"><i class="fas fa-crosshairs"></i><sup>13</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383816">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    р. Майлисай
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383817">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    р. Улькен-Исы
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383818">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>перевал Восьми влюблённых">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.778819,79.885456" data-id="1062"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/1062"
+                                                class="sobject__link">пер. Восьми влюбленных</a><span
+                                                class="sobject__params"> (1Б)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="1 отчёт"><sup> 1</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="1062"><i class="fas fa-crosshairs"></i><sup>14</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383819">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    перевал Проходной
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383820">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>лед. Казанский">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.774708,79.939153" data-id="19718"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/19718"
+                                                class="sobject__link">лед. Казанский</a><span class="sobject__params"><i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="2 отчёта"><sup> 2</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="19718"><i class="fas fa-crosshairs"></i><sup>15</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383821">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    лед. №93
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383822">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>перевал 70 лет Победы (п/п)">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.784606,79.966436" data-id="967"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/967"
+                                                class="sobject__link">пер. 70 лет Победы</a><span
+                                                class="sobject__params"> (1А)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="1 отчёт"><sup> 1</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="967"><i class="fas fa-crosshairs"></i><sup>16</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383823">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>лед. Аркашева">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.770254,79.967286" data-id="19932"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/19932"
+                                                class="sobject__link">лед. Аркашева</a><span class="sobject__params"><i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="2 отчёта"><sup> 2</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="19932"><i class="fas fa-crosshairs"></i><sup>17</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383824">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>перевал Казанский реквием">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.759719,79.959639" data-id="1116"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/1116"
+                                                class="sobject__link">пер. Казанский реквием</a><span
+                                                class="sobject__params"> (2А, 3&nbsp;900&nbsp;м)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="3 отчёта"><sup> 3</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="1116"><i class="fas fa-crosshairs"></i><sup>18</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383825">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>лед. №235">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.962001,79.170169" data-id="20147"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/20147"
+                                                class="sobject__link">лед. №235</a><span class="sobject__params"><i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="1 отчёт"><sup> 1</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="20147"><i class="fas fa-crosshairs"></i><sup>19</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383826">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    р. Улькен-Исы
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383827">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    р. Тентекбулак Юж.
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383828">
+                                <div class="trip__path-item trip__path-item--w-object tooltip tooltipstered tooltip-inited"
+                                    data-title="По отчёту:<br>перевал Тентек">
+
+                                    <div
+                                        class="sobject-wrapper sobject-wrapper--inline sobject-wrapper--oneline sobject-wrapper--w-hover">
+                                        <div class="sobject" data-latlng="44.88205,79.316108" data-id="1367"><a
+                                                href="/web/20241010115306mp_/https://pereval.online/object/1367"
+                                                class="sobject__link">пер. Тентек</a><span class="sobject__params"> (1Б,
+                                                3&nbsp;380&nbsp;м)<i
+                                                    class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="Есть координаты"></i><i
+                                                    class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                                    data-title="1 отчёт"><sup> 1</sup></i></span></div>
+                                        <div class="sobject-nbsp">&nbsp;</div>
+                                    </div>
+                                    <a href="#" class="trip__path-item-zoom color-inherit js-object-map-zoom"
+                                        data-id="1367"><i class="fas fa-crosshairs"></i><sup>20</sup></a>
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383829">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    р. Тентекбулак
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383830">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    р. Коксу
+                                </div>
+                                <span class="trip__path-sep  color-muted">
+                                </span>
+                            </div>
+                            <div class="trip__path-sitem  " data-id="383831">
+                                <div class="trip__path-item  trip__path-item--wo-object color-muted-light ">
+                                    р. Казан
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+
+
+                    <div class="trip__actions">
+                        <div class="trip__action">
+                            <a href="https://web.archive.org/web/20241010115306mp_/http://tlib.ru/doc.aspx?id=43919&amp;page=1"
+                                target="_blank" class="btn btn--primary"><i class="fa fa-arrow-circle-down"></i> Скачать
+                                отчёт на tlib.ru <span class="font-smaller muted-50"> (241 МБ)</span></a>
+                        </div>
+                    </div>
+
+
+                </div>
+
+                <div class="trip__section trip__section--map" id="trip-map">
+                    <div class="trip__sticky js-sticky" data-sticky-top-spacing="60">
+                        <div class="map-wrapper map-expanded-container js-sticky-remove">
+                            <div class="map map--trip js-map" data-bounds-primary="true"
+                                data-bounds="[[44.683261,79.170169],[44.962001,79.967286]]"
+                                data-polyline="[[44.720556,79.714722],[44.699579,79.737429],[44.684385,79.726257],[44.683261,79.713529],[44.691142,79.705853],[44.699595,79.687818],[44.716181,79.661783],[44.712534,79.647641],[44.719739,79.638894],[44.721694,79.65875],[44.726667,79.664167],[44.722424,79.664027],[44.720556,79.714722],[44.778819,79.885456],[44.774708,79.939153],[44.784606,79.966436],[44.770254,79.967286],[44.759719,79.959639],[44.962001,79.170169],[44.88205,79.316108]]"
+                                data-polyline-arrow="true" data-polyline-number="true"
+                                data-options="{&quot;active_object_class&quot;:&quot;pin-active&quot;,&quot;active_object_ids&quot;:[1128,1103,19405,1331,1073,19585,1399,19369,1024,1069,1183,20436,1062,19718,967,19932,1116,20147,1367]}">
+                            </div>
+                        </div>
+                        <div class="map"></div>
+                        <div class="p font-small color-muted">
+                            <p>На карте отображены только объекты с известными координатами. Пунктир просто соединяет
+                                объекты, не показывая истинный маршрут.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <script type="text/x-tmpl" id="tmpl-map-controls-custom">
+<div class="map-controls map-controls--trip">
+<div class="map-control map-control--vert map-control--chevron js-map-trip-prev disabled">
+<i class="fas fa-chevron-up"></i>
+<div class="map-control__tooltip tooltip tooltip-notouch" data-title="Перейти к предыдущему объекту маршрута" data-tooltipster='{"side": "right"}'></div>
+</div>
+<div class="map-control map-control--vert js-map-trip-show-all">
+<i class="far fa-circle"></i>
+<div class="map-control__tooltip tooltip tooltip-notouch" data-title="Показать все объекты маршрута" data-tooltipster='{"side": "right"}'></div>
+</div>
+<div class="map-control map-control--vert map-control--chevron js-map-trip-next">
+<i class="fas fa-chevron-down"></i>
+<div class="map-control__tooltip tooltip tooltip-notouch" data-title="Перейти к следующему объекту маршрута" data-tooltipster='{"side": "right"}'></div>
+</div>
+</div>
+</script>
+
+    </div>
+
+</div>
+{% endblock %}

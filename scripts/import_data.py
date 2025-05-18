@@ -107,60 +107,6 @@ class DataImporter:
         'Ручей': 50
     }
     
-    # Mapping of trip types to IDs
-    trip_types = {
-        'Пеший поход': 1,
-        'Горный поход': 2,
-        'Водный поход': 3,
-        'Велосипедный поход': 4,
-        'Лыжный поход': 5,
-        'Комбинированный поход': 6,
-        'Экспедиция': 7,
-        'Восхождение': 8,
-        'Спуск': 9,
-        'Траверс': 10,
-        'Радиальный выход': 11,
-        'Экскурсия': 12,
-        'Прогулка': 13,
-        'Пробежка': 14,
-        'Пробежка': 15,
-        'Пробежка': 16,
-        'Пробежка': 17,
-        'Пробежка': 18,
-        'Пробежка': 19,
-        'Пробежка': 20,
-        'Пробежка': 21,
-        'Пробежка': 22,
-        'Пробежка': 23,
-        'Пробежка': 24,
-        'Пробежка': 25,
-        'Пробежка': 26,
-        'Пробежка': 27,
-        'Пробежка': 28,
-        'Пробежка': 29,
-        'Пробежка': 30,
-        'Пробежка': 31,
-        'Пробежка': 32,
-        'Пробежка': 33,
-        'Пробежка': 34,
-        'Пробежка': 35,
-        'Пробежка': 36,
-        'Пробежка': 37,
-        'Пробежка': 38,
-        'Пробежка': 39,
-        'Пробежка': 40,
-        'Пробежка': 41,
-        'Пробежка': 42,
-        'Пробежка': 43,
-        'Пробежка': 44,
-        'Пробежка': 45,
-        'Пробежка': 46,
-        'Пробежка': 47,
-        'Пробежка': 48,
-        'Пробежка': 49,
-        'Пробежка': 50
-    }
-
     def __init__(self, base_dir: Path):
         """Initialize importer with base directory"""
         self.base_dir = base_dir
@@ -709,104 +655,98 @@ class DataImporter:
             with open(html_path, 'r', encoding='utf-8') as f:
                 soup = BeautifulSoup(f.read(), 'html.parser')
             
-            # Получаем название похода
-            title = soup.find('title')
-            if not title:
-                return None
-            
-            name = title.text.split(' - ')[0].strip()
-            
-            # Определяем тип похода
-            type_id = None
+            # --- Поиск типа похода как строки ---
+            trip_type = None
             meta_type = soup.find('meta', attrs={'name': 'trip_type'})
             if meta_type:
-                type_name = meta_type.get('content')
-                type_id = self.trip_types.get(type_name)
-            
-            # Если не найдено явно, пробуем по ключевым словам в title/description
-            if type_id is None:
-                # Словарь ключевых слов и соответствующих type_id
-                type_keywords = [
-                    (['горный поход', 'горный'], 1),
-                    (['пеший поход', 'пеший'], 2),
-                    (['лыжный поход', 'лыжный'], 3),
-                    (['велосипедный поход', 'велосипедный'], 4),
-                    (['горно-пеший поход', 'горно-пеший'], 6),
-                ]
-                # Проверяем title
+                trip_type = meta_type.get('content')
+            if not trip_type:
+                title = soup.find('title')
                 title_text = title.text.lower() if title else ''
-                for keywords, tid in type_keywords:
-                    if any(kw in title_text for kw in keywords):
-                        type_id = tid
-                        break
-                # Если не найдено, проверяем meta description
-                if type_id is None:
-                    meta_desc = soup.find('meta', attrs={'name': 'description'})
-                    desc_text = meta_desc.get('content', '').lower() if meta_desc else ''
-                    for keywords, tid in type_keywords:
-                        if any(kw in desc_text for kw in keywords):
-                            type_id = tid
-                            break
+                t = title.text.strip() if title else ''
+                t_candidate = re.split(r'[-\(]', t)[0].strip() if t else ''
+                m = re.search(r'([А-Яа-яA-Za-z\- ]+поход)', t_candidate)
+                if m:
+                    trip_type = m.group(1).strip()
+                else:
+                    trip_type = t_candidate
             
-            # Получаем категорию
-            category = None
-            meta_category = soup.find('meta', attrs={'name': 'category'})
-            if meta_category:
-                category = int(meta_category.get('content'))
+            # Получаем категорию сложности (difficulty)
+            difficulty = None
+            meta_difficulty = soup.find('meta', attrs={'name': 'difficulty'})
+            if meta_difficulty:
+                difficulty = meta_difficulty.get('content')
+            else:
+                match = re.search(r'(\d+\s*к\.с\.)', soup.text)
+                if match:
+                    difficulty = match.group(1)
+            
+            # Получаем сезон
+            season = None
+            meta_season = soup.find('meta', attrs={'name': 'season'})
+            if meta_season:
+                season = meta_season.get('content')
+            else:
+                match = re.search(r'(январ[ья]|феврал[ья]|март[а]?|апрел[ья]|ма[йя]|июн[ья]|июл[ья]|август[а]?|сентябр[ья]|октябр[ья]|ноябр[ья]|декабр[ья])\s*\d{4}', soup.text, re.IGNORECASE)
+                if match:
+                    season = match.group(0)
             
             # Получаем регион
             region_id = None
             meta_region = soup.find('meta', attrs={'name': 'region'})
+            region_name = None
             if meta_region:
                 region_name = meta_region.get('content')
-                # Найдем ID региона по имени
+            else:
+                breadcrumb = soup.find('div', class_='breadcrumb')
+                if breadcrumb:
+                    for a in breadcrumb.find_all('a'):
+                        if 'кавказ' in a.text.lower():
+                            region_name = a.text.strip()
+                            break
+            if region_name:
                 for rid, rdata in self.regions.items():
                     if rdata['name'] == region_name:
                         region_id = rid
                         break
-            
-            # Получаем год и месяц
-            year = None
-            month = None
-            meta_date = soup.find('meta', attrs={'name': 'date'})
-            if meta_date:
-                date_str = meta_date.get('content')
-                try:
-                    date = datetime.strptime(date_str, '%Y-%m')
-                    year = date.year
-                    month = date.month - 1  # Преобразуем в 0-based месяц
-                except ValueError:
-                    pass
             
             # Получаем автора
             author = None
             meta_author = soup.find('meta', attrs={'name': 'author'})
             if meta_author:
                 author = meta_author.get('content')
+            if not author:
+                author_match = re.search(r'Автор[:\s]+([А-Яа-яЁёA-Za-z\-\. ]+?)(?:[,.\n]|\sМаршрут|$)', soup.text)
+                if author_match:
+                    author = author_match.group(1).strip()
             
             # Получаем город автора
-            author_city = None
+            city = None
             meta_city = soup.find('meta', attrs={'name': 'author_city'})
             if meta_city:
-                author_city = meta_city.get('content')
+                city = meta_city.get('content')
             
-            # Получаем содержание
-            content = None
-            article = soup.find('article')
-            if article:
-                content = article.get_text(strip=True)
+            # Парсим маршрут
+            route = []
+            for i, sitem in enumerate(soup.select('.trip__path-sitem')):
+                link = sitem.find('a', href=re.compile(r'/object/\\d+'))
+                if link:
+                    object_id = int(re.search(r'/object/(\\d+)', link['href']).group(1))
+                    name = link.text.strip()
+                else:
+                    object_id = None
+                    name = sitem.get_text(strip=True)
+                route.append({'order_num': i, 'object_id': object_id, 'name': name})
             
             return {
                 'id': trip_id,
-                'title': name,
-                'type_id': type_id,
-                'category': category,
+                'r_type': trip_type,
+                'difficulty': difficulty,
+                'season': season,
                 'region_id': region_id,
-                'year': year,
-                'month': month,
                 'author': author,
-                'author_city': author_city,
-                'content': content
+                'city': city,
+                'route': route
             }
         except Exception as e:
             logging.error(f"Error parsing trip {html_path}: {e}")
@@ -891,7 +831,7 @@ class DataImporter:
         next_id = 1
         parent_map = {}  # id -> parent_id
         # Сначала объекты
-        object_files = glob.glob(os.path.join(directory, '_recepient/pereval.online/object', '*', 'index.html'))
+        object_files = glob.glob(os.path.join(directory, 'object', '*', 'index.html'))
         for object_file in object_files:
             with open(object_file, 'r', encoding='utf-8') as f:
                 soup = BeautifulSoup(f.read(), 'html.parser')
@@ -911,7 +851,7 @@ class DataImporter:
                         else:
                             parent_id = region_map[name]
         # Теперь походы
-        trip_files = glob.glob(os.path.join(directory, '_recepient/pereval.online/trip', '*', 'index.html'))
+        trip_files = glob.glob(os.path.join(directory, 'trip', '*', 'index.html'))
         for trip_file in trip_files:
             with open(trip_file, 'r', encoding='utf-8') as f:
                 soup = BeautifulSoup(f.read(), 'html.parser')
@@ -938,7 +878,7 @@ class DataImporter:
         self.parse_regions_from_breadcrumbs(directory)
         print(f"Parsed {len(self.regions)} regions from breadcrumbs")
         # Далее всё как раньше: объекты, trips, фото
-        object_files = glob.glob(os.path.join(directory, '_recepient/pereval.online/object', '*', 'index.html'))
+        object_files = glob.glob(os.path.join(directory, 'object', '*', 'index.html'))
         print(f"Found {len(object_files)} object files")  # Debug output
         object_files = object_files[:50]
         print(f"Processing first 50 object files")  # Debug output
@@ -952,12 +892,12 @@ class DataImporter:
                 if object_data['id'] == 1069:
                     logging.info(f"[OBJECT_STORE_DEBUG] id=1069 name='{object_data['name']}' height={object_data['height']} from='{object_path}' (before store)")
                 if object_data['id'] in self.objects:
-                    logging.info(f"[OBJECT_OVERWRITE_DEBUG] id={object_data['id']} name='{object_data['name']}' height={object_data['height']} from='{object_path}' (overwriting existing object)")
+                    logging.info(f"[OBJECT_OVERWRITE_DEBUG] id={object_data['id']} name={object_data['name']} height={object_data['height']} from='{object_path}' (overwriting existing object)")
                 self.objects[object_data['id']] = object_data
                 print(f"Added object: {object_data['name']} (ID: {object_data['id']})")  # Debug output
         print(f"Imported object IDs: {object_ids}")  # Debug output
         # Process trips
-        trip_files = glob.glob(os.path.join(directory, '_recepient/pereval.online/trip', '*', 'index.html'))
+        trip_files = glob.glob(os.path.join(directory, 'trip', '*', 'index.html'))
         print(f"Found {len(trip_files)} trip files")  # Debug output
         trip_files = trip_files[:50]
         print(f"Processing first 50 trip files")  # Debug output
@@ -967,9 +907,9 @@ class DataImporter:
                 trip_data = self.parse_trip(trip_file)
                 if trip_data:
                     self.trips[trip_data['id']] = trip_data
-                    print(f"Added trip: {trip_data['title']} (ID: {trip_data['id']})")  # Debug output
+                    print(f"Added trip: {trip_data['id']}")  # Debug output
         # Process photos
-        photo_files = glob.glob(os.path.join(directory, '_recepient/pereval.online/photo', '*', 'index.html'))
+        photo_files = glob.glob(os.path.join(directory, 'photo', '*', 'index.html'))
         print(f"Found {len(photo_files)} photo files")  # Debug output
         for photo_file in photo_files:
             print(f"Processing photo file: {photo_file}")  # Debug output
@@ -996,10 +936,6 @@ class DataImporter:
     def generate_sql(self):
         """Generate SQL statements for all parsed data"""
         sql = []
-        
-        # Обратные маппинги для ENUM
-        object_type_reverse = {v: k for k, v in self.object_types.items()}
-        trip_type_reverse = {v: k for k, v in self.trip_types.items()}
         
         # First, insert all regions with NULL parent_id and root_region_id
         for region in self.regions.values():
@@ -1032,7 +968,7 @@ class DataImporter:
         
         # Add objects
         for obj in self.objects.values():
-            type_str = object_type_reverse.get(obj['type_id'], None)
+            type_str = self.object_types.get(obj['type_id'], None)
             logging.info(f"[SQL GENERATE] id={obj['id']} name={obj['name']} height={obj.get('height')}")
             sql.append(f"""INSERT INTO objects (id, name, type, region_id, country_code, country_full, parent_id, height, \
                 latitude, longitude, description, border_distance, info_source, updated_at)
@@ -1045,12 +981,15 @@ class DataImporter:
         
         # Add trips
         for trip in self.trips.values():
-            type_str = trip_type_reverse.get(trip['type_id'], None)
-            sql.append(f"""INSERT INTO trips (id, name, type, region_id, start_date, end_date, description)
-                VALUES ({trip['id']}, {self.sql_value(trip['title'])}, {self.sql_value(type_str)}, {self.sql_value(trip['region_id'])}, 
-                {self.sql_value(trip.get('year'))}, {self.sql_value(trip.get('month'))}, 
-                {self.sql_value(trip.get('content'))});""")
-            print(f"Generated SQL for trip: {trip['title']}")  # Debug output
+            type_str = trip['r_type']
+            sql.append(f"""INSERT INTO trips (id, type, region_id, difficulty, season, author, city)
+                VALUES ({trip['id']}, {self.sql_value(type_str)}, {self.sql_value(trip['region_id'])}, 
+                {self.sql_value(trip.get('difficulty'))}, {self.sql_value(trip.get('season'))}, {self.sql_value(trip.get('author'))}, {self.sql_value(trip.get('city'))});""")
+            print(f"Generated SQL for trip: {trip['id']}")  # Debug output
+            # Добавляем маршрут
+            for point in trip.get('route', []):
+                sql.append(f"INSERT INTO trip_route (trip_id, order_num, object_id, name) VALUES ({trip['id']}, {point['order_num']}, {point['object_id'] if point['object_id'] is not None else 'NULL'}, {self.sql_value(point['name'])});")
+                print(f"Generated SQL for trip_route: trip_id={trip['id']} order={point['order_num']} name={point['name']}")
         
         # Add photos
         for photo in self.photos:

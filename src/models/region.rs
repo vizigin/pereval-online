@@ -7,7 +7,6 @@ pub struct Region {
     pub id: i32,
     pub name: String,
     pub parent_id: Option<i32>,
-    pub country_code: Option<String>,
     pub root_region_id: Option<i32>,
 }
 
@@ -15,7 +14,6 @@ pub struct Region {
 pub struct CreateRegion {
     pub name: String,
     pub parent_id: Option<i32>,
-    pub country_code: Option<String>,
     pub root_region_id: Option<i32>,
 }
 
@@ -23,6 +21,5 @@ pub struct CreateRegion {
 pub struct UpdateRegion {
     pub name: Option<String>,
     pub parent_id: Option<i32>,
-    pub country_code: Option<String>,
     pub root_region_id: Option<i32>,
 } 
