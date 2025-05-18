@@ -32,3 +32,16 @@ pub struct UpdateTrip {
     pub author: Option<String>,
     pub city: Option<String>,
 } 
+
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+pub struct TripRoute {
+    pub id: i32,
+    pub trip_id: i32,
+    pub order_num: i32,
+    pub object_id: Option<i32>,
+    pub name: Option<String>,
+    pub object_type: Option<String>,
+    pub height: Option<i32>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+} 

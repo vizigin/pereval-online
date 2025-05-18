@@ -19,6 +19,7 @@ use crate::{
         object::{CreateObject, Object, UpdateObject},
         trip::{CreateTrip, Trip, UpdateTrip},
         photo::{CreatePhoto, Photo, UpdatePhoto},
+        trip::TripRoute,
     },
 };
 
@@ -95,7 +96,7 @@ pub struct SubregionInfo {
 pub struct ObjectInfo {
     pub id: i32,
     pub name: String,
-    pub object_type: String,
+    pub object_type: Option<String>,
     pub height: Option<i32>,
 }
 
@@ -142,6 +143,7 @@ pub struct TripTemplateData {
     pub city: Option<String>,
     pub region_breadcrumbs: Vec<RegionBreadcrumb>,
     pub title_text: String,
+    pub route: Vec<TripRoute>,
 }
 
 #[derive(Template)]
@@ -668,6 +670,22 @@ async fn get_trip(
         title_text.push_str(&format!(" ({})", author));
     }
 
+    let route = sqlx::query_as!(
+        TripRoute,
+        r#"
+        SELECT tr.id, tr.trip_id, tr.order_num, tr.object_id, tr.name,
+               o.type as object_type, o.height,
+               o.latitude::DOUBLE PRECISION as latitude, o.longitude::DOUBLE PRECISION as longitude
+        FROM trip_route tr
+        LEFT JOIN objects o ON tr.object_id = o.id
+        WHERE tr.trip_id = $1
+        ORDER BY tr.order_num
+        "#,
+        id
+    )
+    .fetch_all(&pool)
+    .await?;
+
     let trip_data = TripTemplateData {
         id: trip.id,
         r_type: trip.r#type,
@@ -678,6 +696,7 @@ async fn get_trip(
         city: trip.city,
         region_breadcrumbs,
         title_text,
+        route,
     };
 
     let regions_for_aside = get_regions_with_count(&pool).await;
