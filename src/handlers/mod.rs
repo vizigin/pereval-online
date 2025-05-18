@@ -11,6 +11,7 @@ use tower_http::services::ServeFile;
 use askama::Template;
 use axum::response::Html;
 use num_traits::ToPrimitive;
+use std::str::FromStr;
 
 use crate::{
     error::AppError,
@@ -74,6 +75,7 @@ pub struct RegionPageTemplate {
     pub objects: Vec<ObjectInfo>,
     pub active_type: String,
     pub regions: Vec<RegionInfo>,
+    pub region_breadcrumbs: Vec<RegionBreadcrumb>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -105,6 +107,10 @@ pub struct ObjectInfo {
 pub struct ObjectTemplate {
     pub object: ObjectTemplateData,
     pub regions: Vec<RegionInfo>,
+    pub trips_tabs: ObjectTripsTabs,
+    pub nearest_peaks: Vec<ObjectInfo>,
+    pub nearest_passes: Vec<ObjectInfo>,
+    pub nearest_glaciers: Vec<ObjectInfo>,
 }
 
 #[derive(Debug, Serialize)]
@@ -130,6 +136,8 @@ pub struct ObjectTemplateData {
     pub region_breadcrumbs: Vec<RegionBreadcrumb>,
     pub info_source: Option<String>,
     pub updated_at: Option<String>,
+    pub category: Option<String>,
+    pub slope_type: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -144,6 +152,7 @@ pub struct TripTemplateData {
     pub region_breadcrumbs: Vec<RegionBreadcrumb>,
     pub title_text: String,
     pub route: Vec<TripRoute>,
+    pub tlib_url: Option<String>,
 }
 
 #[derive(Template)]
@@ -151,6 +160,18 @@ pub struct TripTemplateData {
 pub struct TripTemplate {
     pub trip: TripTemplateData,
     pub regions: Vec<RegionInfo>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TripWithRoute {
+    pub trip: Trip,
+    pub route: Vec<TripRoute>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ObjectTripsTabs {
+    pub total_count: usize,
+    pub by_type: std::collections::BTreeMap<&'static str, Vec<TripWithRoute>>,
 }
 
 // Кастомный фильтр для форматирования числа с пробелами между тысячами
@@ -205,17 +226,54 @@ pub fn router() -> Router<PgPool> {
 async fn get_regions_with_count(pool: &PgPool) -> Vec<RegionInfo> {
     let rows = sqlx::query!(
         r#"
-        SELECT r.id, r.name, COUNT(o.id) as count
+        SELECT r.id, r.name, c.count
         FROM regions r
-        LEFT JOIN objects o ON o.region_id = r.id
-        WHERE r.id IN (33, 144, 336, 290, 314, 1, 28, 442, 506, 27, 25, 434, 484, 496, 325, 26, 472, 501, 324, 476, 485, 491, 492, 495, 514)
-        GROUP BY r.id, r.name
-        ORDER BY count DESC, r.name
+        LEFT JOIN LATERAL (
+            WITH RECURSIVE subregions AS (
+                SELECT id FROM regions WHERE id = r.id
+                UNION ALL
+                SELECT cr.id FROM regions cr JOIN subregions sr ON cr.parent_id = sr.id
+            )
+            SELECT COUNT(*) FROM objects WHERE region_id IN (SELECT id FROM subregions)
+        ) c(count) ON TRUE
+        WHERE r.name IN (
+            'Кавказ',
+            'Памир и Памиро-Алай',
+            'Тянь-Шань',
+            'Прибайкалье и Забайкалье',
+            'Саяны',
+            'Алтай',
+            'Джунгарский Алатау',
+            'Крым',
+            'Дальний Восток',
+            'Гималаи',
+            'Альпы',
+            'Урал',
+            'Северо-Запад России',
+            'Средняя Сибирь',
+            'Тавр',
+            'Высокий Атлас',
+            'Карпаты',
+            'Северо-Восточная Сибирь',
+            'Кузнецкий Алатау',
+            'Островная Арктика',
+            'Восточно-Европейская равнина',
+            'Западная Сибирь',
+            'Горы Южной Сибири',
+            'Тыва',
+            'Средняя Азия'
+        )
+        ORDER BY c.count DESC, r.name
         "#
     )
     .fetch_all(pool)
     .await
     .unwrap_or_default();
+
+    // DEBUG: Вывод результатов из базы
+    for row in &rows {
+        println!("[DEBUG get_regions_with_count] Region: {}, Count: {:?}", row.name, row.count);
+    }
 
     rows.into_iter().map(|row| RegionInfo {
         id: row.id,
@@ -348,15 +406,21 @@ async fn get_region(
         nature: stats.nature.unwrap_or(0),
     };
 
-    // Получаем подрайоны (дочерние регионы)
+    // Получаем подрайоны (дочерние регионы) с рекурсивным подсчётом объектов
     let subregions = sqlx::query!(
         r#"
-        SELECT r.id, r.name, COUNT(o.id) as count
+        SELECT r.id, r.name, c.count
         FROM regions r
-        LEFT JOIN objects o ON o.region_id = r.id
+        LEFT JOIN LATERAL (
+            WITH RECURSIVE subregions AS (
+                SELECT id FROM regions WHERE id = r.id
+                UNION ALL
+                SELECT cr.id FROM regions cr JOIN subregions sr ON cr.parent_id = sr.id
+            )
+            SELECT COUNT(*) FROM objects WHERE region_id IN (SELECT id FROM subregions)
+        ) c(count) ON TRUE
         WHERE r.parent_id = $1
-        GROUP BY r.id, r.name
-        ORDER BY count DESC, r.name
+        ORDER BY c.count DESC, r.name
         "#,
         id
     )
@@ -383,7 +447,7 @@ async fn get_region(
     };
 
     // Получаем объекты региона с фильтром по типу
-    let objects = if let Some(type_name) = type_filter {
+    let objects: Vec<ObjectInfo> = if let Some(type_name) = type_filter {
         sqlx::query!(
             "SELECT id, name, type, height FROM objects WHERE region_id = $1 AND type = $2 ORDER BY name",
             id, type_name
@@ -417,14 +481,40 @@ async fn get_region(
         .collect()
     };
 
+    // Получаем рекурсивно все подрегионы и считаем объекты
+    let count_row = sqlx::query!(
+        r#"
+        WITH RECURSIVE subregions AS (
+            SELECT id FROM regions WHERE id = $1
+            UNION ALL
+            SELECT regions.id FROM regions JOIN subregions ON regions.parent_id = subregions.id
+        )
+        SELECT COUNT(*) as count FROM objects WHERE region_id IN (SELECT id FROM subregions)
+        "#,
+        region.id
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
     let region_info = RegionInfo {
         id: region.id,
         name: region.name,
-        count: 0, // не используется на этой странице
+        count: count_row.count.unwrap_or(0),
     };
 
     // Получаем список всех регионов для aside
     let regions = get_regions_with_count(&pool).await;
+
+    // Получаем список всех регионов с parent_id для построения breadcrumbs
+    let all_regions: Vec<(i32, String, Option<i32>)> = sqlx::query_as!(
+        RegionWithParent,
+        "SELECT id, name, parent_id FROM regions"
+    )
+    .fetch_all(&pool)
+    .await
+    .map(|v| v.into_iter().map(|r| (r.id, r.name, r.parent_id)).collect())
+    .unwrap_or_default();
+    let region_breadcrumbs = build_region_breadcrumbs_common(Some(region.id), &all_regions);
 
     Ok(Html(RegionPageTemplate {
         region: region_info,
@@ -433,6 +523,7 @@ async fn get_region(
         objects,
         active_type,
         regions,
+        region_breadcrumbs,
     }.render().unwrap()))
 }
 
@@ -464,8 +555,9 @@ async fn list_objects(
     let objects = sqlx::query_as!(
         Object,
         r#"
-        SELECT id, name, type as "type!", region_id, parent_id, height, 
-               latitude, longitude, description
+        SELECT id, name, type as "type?", region_id, parent_id, height, 
+               latitude, longitude, description,
+               NULL as category, NULL as slope_type
         FROM objects
         ORDER BY name
         LIMIT $1
@@ -486,8 +578,9 @@ async fn get_object(
 ) -> Result<impl IntoResponse, AppError> {
     let object = sqlx::query!(
         r#"
-        SELECT o.id, o.name, o.type as "type!", o.region_id as "region_id?", o.parent_id, o.height,
-               o.latitude, o.longitude, o.description, r.name as region_name, o.country_full, o.border_distance, o.info_source, o.updated_at
+        SELECT o.id, o.name, o.type as "type?", o.region_id as "region_id?", o.parent_id, o.height,
+               o.latitude, o.longitude, o.description, r.name as region_name, o.country_full, o.border_distance, o.info_source, o.updated_at,
+               o.category, o.slope_type
         FROM objects o
         LEFT JOIN regions r ON o.region_id = r.id
         WHERE o.id = $1
@@ -498,8 +591,8 @@ async fn get_object(
     .await?
     .ok_or_else(|| AppError::NotFound(format!("Object {} not found", id)))?;
 
-    let lat = object.latitude.map(|v| v.to_string());
-    let lng = object.longitude.map(|v| v.to_string());
+    let lat = object.latitude.as_ref().map(|v| v.to_string());
+    let lng = object.longitude.as_ref().map(|v| v.to_string());
 
     // Получаем все регионы с parent_id
     let regions: Vec<(i32, String, Option<i32>)> = sqlx::query_as!(
@@ -517,7 +610,7 @@ async fn get_object(
     let data = ObjectTemplateData {
         id: object.id,
         name: object.name,
-        r_type: object.r#type,
+        r_type: object.r#type.unwrap_or_default(),
         region_name: Some(object.region_name),
         height: object.height,
         lat,
@@ -530,10 +623,122 @@ async fn get_object(
         region_breadcrumbs,
         info_source: object.info_source,
         updated_at: object.updated_at,
+        category: object.category,
+        slope_type: object.slope_type,
     };
 
     let regions_for_aside = get_regions_with_count(&pool).await;
-    Ok(Html(ObjectTemplate { object: data, regions: regions_for_aside }.render().unwrap()))
+
+    // Получаем все trips, связанные с объектом через trip_route
+    let trip_rows = sqlx::query_as!(
+        Trip,
+        r#"
+        SELECT t.id, t.type as "type?", t.region_id, r.name as "region_name?", t.difficulty, t.season, t.author, t.city, t.tlib_url
+        FROM trips t
+        JOIN trip_route tr ON tr.trip_id = t.id
+        LEFT JOIN regions r ON t.region_id = r.id
+        WHERE tr.object_id = $1
+        GROUP BY t.id, r.name
+        ORDER BY t.id DESC
+        "#,
+        id
+    )
+    .fetch_all(&pool)
+    .await?;
+
+    // Группируем по нужным типам маршрутов
+    let mut by_type: std::collections::BTreeMap<&'static str, Vec<TripWithRoute>> = std::collections::BTreeMap::new();
+    let mut total_count = 0;
+    for trip in trip_rows {
+        let ttype = match trip.r#type.as_deref().map(str::trim) {
+            Some("Горный") | Some("Горный поход") => "Горный",
+            Some("Пеший") | Some("Пеший поход") => "Пеший",
+            Some("Лыжный") | Some("Лыжный поход") => "Лыжный",
+            Some("Велосипедный") | Some("Велосипедный поход") => "Велосипедный",
+            Some("Горно-пеший") | Some("Горно-пеший поход") | Some("Горно") => "Горно-пеший",
+            _ => continue,
+        };
+        // Для каждого похода выбираем маршрут
+        let route = sqlx::query_as!(
+            TripRoute,
+            r#"
+            SELECT tr.id, tr.trip_id, tr.order_num, tr.object_id, tr.name,
+                   o.type as object_type, o.height,
+                   o.category,
+                   o.latitude::DOUBLE PRECISION as latitude, o.longitude::DOUBLE PRECISION as longitude,
+                   (
+                     SELECT COUNT(DISTINCT tr2.trip_id)
+                     FROM trip_route tr2
+                     WHERE tr2.object_id = tr.object_id
+                   ) as trip_count
+            FROM trip_route tr
+            LEFT JOIN objects o ON tr.object_id = o.id
+            WHERE tr.trip_id = $1
+            ORDER BY tr.order_num
+            "#,
+            trip.id
+        )
+        .fetch_all(&pool)
+        .await?;
+        by_type.entry(ttype).or_default().push(TripWithRoute { trip, route });
+        total_count += 1;
+    }
+    let trips_tabs = ObjectTripsTabs { total_count, by_type };
+    // DEBUG: печатаем, что реально попало в by_type
+    for (k, v) in &trips_tabs.by_type {
+        println!("[DEBUG] by_type: {} -> {}", k, v.len());
+    }
+    println!("[DEBUG] total_count: {}", trips_tabs.total_count);
+
+    // --- Новый код: ближайшие объекты ---
+    let (latitude, longitude) = match (&object.latitude, &object.longitude) {
+        (Some(lat), Some(lng)) => (lat.to_f64().unwrap_or(0.0), lng.to_f64().unwrap_or(0.0)),
+        _ => (0.0, 0.0),
+    };
+    let latitude_bd = BigDecimal::from_str(&latitude.to_string()).unwrap();
+    let longitude_bd = BigDecimal::from_str(&longitude.to_string()).unwrap();
+    let nearest_rows = sqlx::query!(
+        r#"
+        SELECT id, name, type, height, latitude, longitude
+        FROM objects
+        WHERE id != $1
+          AND latitude IS NOT NULL AND longitude IS NOT NULL
+          AND sqrt(power((latitude - $2) * 111.32, 2) + power((longitude - $3) * 71.5, 2)) <= 10
+        ORDER BY sqrt(power((latitude - $2) * 111.32, 2) + power((longitude - $3) * 71.5, 2))
+        LIMIT 100
+        "#,
+        id, latitude_bd, longitude_bd
+    )
+    .fetch_all(&pool)
+    .await?;
+    let mut nearest_peaks = Vec::new();
+    let mut nearest_passes = Vec::new();
+    let mut nearest_glaciers = Vec::new();
+    for row in nearest_rows {
+        let info = ObjectInfo {
+            id: row.id,
+            name: row.name.clone(),
+            object_type: row.r#type.clone(),
+            height: row.height,
+        };
+        let name_lower = row.name.to_lowercase();
+        if name_lower.contains("верш") || name_lower.contains("пик") {
+            nearest_peaks.push(info);
+        } else if name_lower.contains("перевал") || name_lower.contains("пер.") {
+            nearest_passes.push(info);
+        } else if name_lower.contains("ледник") || name_lower.contains("лед.") {
+            nearest_glaciers.push(info);
+        }
+    }
+
+    Ok(Html(ObjectTemplate {
+        object: data,
+        regions: regions_for_aside,
+        trips_tabs,
+        nearest_peaks,
+        nearest_passes,
+        nearest_glaciers,
+    }.render().unwrap()))
 }
 
 // Для sqlx::query_as!
@@ -553,8 +758,9 @@ async fn create_object(
         r#"
         INSERT INTO objects (name, type, region_id, parent_id, height, latitude, longitude, description)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, name, type as "type!", region_id, parent_id, height,
-                  latitude, longitude, description
+        RETURNING id, name, type as "type?", region_id, parent_id, height,
+                  latitude, longitude, description,
+                  NULL as category, NULL as slope_type
         "#,
         object.name,
         object.r#type,
@@ -578,7 +784,7 @@ async fn list_trips(
     let trips = sqlx::query_as!(
         Trip,
         r#"
-        SELECT id, type as "type!", region_id, difficulty, season, author, city
+        SELECT id, type as "type?", region_id, NULL as "region_name?", difficulty, season, author, city, tlib_url
         FROM trips
         ORDER BY id DESC
         LIMIT $1
@@ -622,7 +828,7 @@ async fn get_trip(
     let trip = sqlx::query_as!(
         Trip,
         r#"
-        SELECT id, type as "type!", region_id, difficulty, season, author, city
+        SELECT id, type as "type?", region_id, NULL as "region_name?", difficulty, season, author, city, tlib_url
         FROM trips
         WHERE id = $1
         "#,
@@ -655,18 +861,12 @@ async fn get_trip(
 
     let region_name = region_breadcrumbs.last().map(|r| r.name.clone());
     let mut parts = vec![];
-    parts.push(trip.r#type.clone());
-    if let Some(d) = &trip.difficulty {
-        parts.push(d.clone());
-    }
-    if let Some(region) = &region_name {
-        parts.push(region.clone());
-    }
-    if let Some(season) = &trip.season {
-        parts.push(season.clone());
-    }
+    if let Some(ref t) = trip.r#type { parts.push(t.clone()); }
+    if let Some(ref d) = trip.difficulty { parts.push(d.clone()); }
+    if let Some(ref region) = region_name { parts.push(region.clone()); }
+    if let Some(ref season) = trip.season { parts.push(season.clone()); }
     let mut title_text = parts.join(", ");
-    if let Some(author) = &trip.author {
+    if let Some(ref author) = trip.author {
         title_text.push_str(&format!(" ({})", author));
     }
 
@@ -675,7 +875,13 @@ async fn get_trip(
         r#"
         SELECT tr.id, tr.trip_id, tr.order_num, tr.object_id, tr.name,
                o.type as object_type, o.height,
-               o.latitude::DOUBLE PRECISION as latitude, o.longitude::DOUBLE PRECISION as longitude
+               o.category,
+               o.latitude::DOUBLE PRECISION as latitude, o.longitude::DOUBLE PRECISION as longitude,
+               (
+                 SELECT COUNT(DISTINCT tr2.trip_id)
+                 FROM trip_route tr2
+                 WHERE tr2.object_id = tr.object_id
+               ) as trip_count
         FROM trip_route tr
         LEFT JOIN objects o ON tr.object_id = o.id
         WHERE tr.trip_id = $1
@@ -688,7 +894,7 @@ async fn get_trip(
 
     let trip_data = TripTemplateData {
         id: trip.id,
-        r_type: trip.r#type,
+        r_type: trip.r#type.unwrap_or_default(),
         difficulty: trip.difficulty,
         region_name,
         season: trip.season,
@@ -697,6 +903,7 @@ async fn get_trip(
         region_breadcrumbs,
         title_text,
         route,
+        tlib_url: trip.tlib_url,
     };
 
     let regions_for_aside = get_regions_with_count(&pool).await;
@@ -710,16 +917,17 @@ async fn create_trip(
     let result = sqlx::query_as!(
         Trip,
         r#"
-        INSERT INTO trips (type, region_id, difficulty, season, author, city)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, type as "type!", region_id, difficulty, season, author, city
+        INSERT INTO trips (type, region_id, difficulty, season, author, city, tlib_url)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, type as "type?", region_id, NULL as "region_name?", difficulty, season, author, city, tlib_url
         "#,
         trip.r#type,
         trip.region_id,
         trip.difficulty,
         trip.season,
         trip.author,
-        trip.city
+        trip.city,
+        trip.tlib_url
     )
     .fetch_one(&pool)
     .await?;
