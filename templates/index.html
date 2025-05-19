@@ -1,6 +1,95 @@
 {% extends "base.html" %}
 {% block content %}
-<!-- Контент главной страницы. regions передаётся для aside. -->
-<h1>Добро пожаловать на Перевал.Онлайн!</h1>
-<p>Главная страница. Здесь будет карта, статистика и т.д.</p>
-{% endblock %} 
+<div class="content ">
+
+    <div class="content__inner">
+
+        <div class="map-wrapper map-wrapper--fullheight map-wrapper--homepage map-expanded-container overflow-hidden">
+            <div class="map js-map"
+                data-bounds="[[&quot;27.702500&quot;,&quot;6.705830&quot;],[&quot;69.991892&quot;,&quot;161.915537&quot;]]">
+            </div>
+            <div class="map-stat active">
+                <div class="map-stat__action-area toggle-element" data-selector=".map-stat" data-toggle-class="active">
+                </div>
+                <div class="map-stat__inner">
+                    <div class="map-stat__bg"></div>
+                    <div class="map-stat__main">
+
+                        <div class="map-stat__title h1">Самая большая база<br> по&nbsp;горным объектам
+                            России&nbsp;и&nbsp;СНГ</div>
+
+                        <div class="map-stat__content">
+
+                            <div class="map-stat__row"><span class="map-stat__value">{{ stats.vertices }}</span> <span
+                                    class="map-stat__label">вершин</span></div>
+                            <div class="map-stat__row"><span class="map-stat__value">{{ stats.passes }}</span> <span
+                                    class="map-stat__label">перевалов</span></div>
+                            <div class="map-stat__row"><span class="map-stat__value">{{ stats.infrastructure }}</span> <span
+                                    class="map-stat__label">объекта инфраструктуры</span></div>
+                            <div class="map-stat__row"><span class="map-stat__value">{{ stats.glaciers }}</span> <span
+                                    class="map-stat__label">ледника</span></div>
+                            <div class="map-stat__row"><span class="map-stat__value">{{ stats.nature }}</span> <span
+                                    class="map-stat__label">объектов природы</span></div>
+
+                            <div class="map-stat__row"><span class="map-stat__value">{{ stats.photos }}</span> <span
+                                    class="map-stat__label">фотографий</span></div>
+
+                            <div class="map-stat__row"><span class="map-stat__value">{{ stats.trips }}</span> <span
+                                    class="map-stat__label">отчёта</span></div>
+
+                        </div>
+
+                        <div class="map-stat__action"><a href="#" data-selector=".map-stat" data-toggle-class="active"
+                                class="btn btn--primary toggle-element"><i
+                                    class="fas fa-map-marker-alt"></i><span>Показать карту</span></a></div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="map-wrapper-after">
+
+            <div class="object__block object__block--nomargin object__block--marginbneg">
+                <div class="region">
+
+                    <h2>Горные районы</h2>
+
+                    <div class="region__main">
+                        <div class="region__list">
+                            <nav class="menu-list menu-list--inline menu-list--nolink">
+                                <ul>
+                                    {% for region in regions %}
+                                    <li><a href="/regions/{{ region.id }}"><span
+                                                class="link">{{ region.name }}</span>&nbsp;<span
+                                                class="color-muted-strong font-smaller">({{ region.count }})</span></a></li>
+                                    {% endfor %}
+                                    <li class="menu-list-li-bg-grey"><a
+                                            href="/regions"><span
+                                                class="link">Все районы</span> →</a></li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="object__block object__block--cols object__block--nomargin">
+                <div class="clearfix"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="footer footer--absolute touch-focused disable-prevent-link-clicks">
+    <div class="copyright">
+        <a href="https://vk.com/pereval.online" target="_blank"
+            class="social-icon social-icon--vk tooltip tooltipstered tooltip-inited"><i class="fab fa-vk"></i></a> ©
+        2025 Перевал.Online. Просим указывать ссылку на <a
+            href="https://pereval.online/">pereval.online</a> при
+        использовании материалов сайта.
+    </div>
+</div>
+<div class="footer-replace"></div>
+{% endblock %}

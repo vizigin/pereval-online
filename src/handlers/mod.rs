@@ -46,6 +46,7 @@ pub struct Stats {
 #[template(path = "index.html")]
 pub struct IndexTemplate {
     pub regions: Vec<RegionInfo>,
+    pub stats: Stats,
 }
 
 #[derive(Template)]
@@ -194,6 +195,18 @@ pub struct RegionTripsStats {
     pub by_type: std::collections::BTreeMap<String, i64>,
 }
 
+#[derive(Template)]
+#[template(path = "about.html")]
+pub struct AboutTemplate {
+    pub regions: Vec<RegionInfo>,
+}
+
+#[derive(Template)]
+#[template(path = "contacts.html")]
+pub struct ContactsTemplate {
+    pub regions: Vec<RegionInfo>,
+}
+
 // Кастомный фильтр для форматирования числа с пробелами между тысячами
 pub fn format_number(value: &i32) -> String {
     let s = value.to_string();
@@ -232,6 +245,8 @@ pub fn router() -> Router<PgPool> {
         .route("/", get(index_handler))
         .route("/regions", get(regions_handler))
         .route("/search", get(search_handler))
+        .route("/about", get(about_handler))
+        .route("/contacts", get(contacts_handler))
         .route("/stats", get(get_stats))
         .route("/api/regions", get(list_regions).post(create_region))
         .route("/regions/:id", get(get_region))
@@ -304,7 +319,49 @@ async fn get_regions_with_count(pool: &PgPool) -> Vec<RegionInfo> {
 
 async fn index_handler(State(pool): State<PgPool>) -> Html<String> {
     let regions = get_regions_with_count(&pool).await;
-    Html(IndexTemplate { regions }.render().unwrap())
+    let stats_row = sqlx::query!(
+        r#"
+        WITH object_counts AS (
+            SELECT
+                COUNT(*) FILTER (WHERE LOWER(type) = 'вершина') as vertices,
+                COUNT(*) FILTER (WHERE LOWER(type) = 'перевал') as passes,
+                COUNT(*) FILTER (WHERE LOWER(type) = 'инфраструктура') as infrastructure,
+                COUNT(*) FILTER (WHERE LOWER(type) = 'ледник') as glaciers,
+                COUNT(*) FILTER (WHERE LOWER(type) = 'природа') as nature
+            FROM objects
+        ),
+        photo_count AS (
+            SELECT COUNT(*) as count FROM photos
+        ),
+        trip_count AS (
+            SELECT COUNT(*) as count FROM trips
+        )
+        SELECT
+            oc.vertices,
+            oc.passes,
+            oc.infrastructure,
+            oc.glaciers,
+            oc.nature,
+            pc.count as photos,
+            tc.count as trips
+        FROM object_counts oc
+        CROSS JOIN photo_count pc
+        CROSS JOIN trip_count tc
+        "#
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let stats = Stats {
+        vertices: stats_row.vertices.unwrap_or(0),
+        passes: stats_row.passes.unwrap_or(0),
+        infrastructure: stats_row.infrastructure.unwrap_or(0),
+        glaciers: stats_row.glaciers.unwrap_or(0),
+        nature: stats_row.nature.unwrap_or(0),
+        photos: stats_row.photos.unwrap_or(0),
+        trips: stats_row.trips.unwrap_or(0),
+    };
+    Html(IndexTemplate { regions, stats }.render().unwrap())
 }
 
 async fn regions_handler(State(pool): State<PgPool>) -> Result<Html<String>, axum::http::StatusCode> {
@@ -324,11 +381,11 @@ async fn get_stats(
         r#"
         WITH object_counts AS (
             SELECT
-                COUNT(*) FILTER (WHERE type = 'Вершина') as vertices,
-                COUNT(*) FILTER (WHERE type = 'Перевал') as passes,
-                COUNT(*) FILTER (WHERE type = 'Инфраструктура') as infrastructure,
-                COUNT(*) FILTER (WHERE type = 'Ледник') as glaciers,
-                COUNT(*) FILTER (WHERE type = 'Озеро') as nature
+                COUNT(*) FILTER (WHERE LOWER(type) = 'вершина') as vertices,
+                COUNT(*) FILTER (WHERE LOWER(type) = 'перевал') as passes,
+                COUNT(*) FILTER (WHERE LOWER(type) = 'инфраструктура') as infrastructure,
+                COUNT(*) FILTER (WHERE LOWER(type) = 'ледник') as glaciers,
+                COUNT(*) FILTER (WHERE LOWER(type) = 'природа') as nature
             FROM objects
         ),
         photo_count AS (
@@ -424,11 +481,11 @@ async fn get_region(
     let stats_row = sqlx::query!(
         r#"
         SELECT
-            COUNT(*) FILTER (WHERE type = 'Перевал') as passes,
-            COUNT(*) FILTER (WHERE type = 'Вершина') as vertices,
-            COUNT(*) FILTER (WHERE type = 'Ледник') as glaciers,
-            COUNT(*) FILTER (WHERE type = 'Инфраструктура') as infrastructure,
-            COUNT(*) FILTER (WHERE type = 'Природа') as nature
+            COUNT(*) FILTER (WHERE LOWER(type) = 'перевал') as passes,
+            COUNT(*) FILTER (WHERE LOWER(type) = 'вершина') as vertices,
+            COUNT(*) FILTER (WHERE LOWER(type) = 'ледник') as glaciers,
+            COUNT(*) FILTER (WHERE LOWER(type) = 'инфраструктура') as infrastructure,
+            COUNT(*) FILTER (WHERE LOWER(type) = 'природа') as nature
         FROM objects WHERE region_id = ANY($1)
         "#,
         &subregion_ids
@@ -491,7 +548,7 @@ async fn get_region(
             FROM objects o
             LEFT JOIN trip_route tr ON tr.object_id = o.id
             LEFT JOIN trips t ON t.id = tr.trip_id
-            WHERE o.region_id = ANY($1) AND o.type = 'Перевал'
+            WHERE o.region_id = ANY($1) AND LOWER(o.type) = 'перевал'
             GROUP BY o.id, o.name, o.type, o.height, o.category, o.latitude, o.longitude
             ORDER BY o.name
             LIMIT 24"#,
@@ -517,7 +574,7 @@ async fn get_region(
             FROM objects o
             LEFT JOIN trip_route tr ON tr.object_id = o.id
             LEFT JOIN trips t ON t.id = tr.trip_id
-            WHERE o.region_id = ANY($1) AND o.type = 'Вершина'
+            WHERE o.region_id = ANY($1) AND LOWER(o.type) = 'вершина'
             GROUP BY o.id, o.name, o.type, o.height, o.latitude, o.longitude
             ORDER BY o.name
             LIMIT 24"#,
@@ -539,7 +596,7 @@ async fn get_region(
     })
     .collect();
     let glaciers = sqlx::query!(
-        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Ледник' ORDER BY name LIMIT 24",
+        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND LOWER(type) = 'ледник' ORDER BY name LIMIT 24",
         &subregion_ids
     )
     .fetch_all(&pool)
@@ -558,7 +615,7 @@ async fn get_region(
     })
     .collect();
     let infrastructure = sqlx::query!(
-        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Инфраструктура' ORDER BY name LIMIT 24",
+        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND LOWER(type) = 'инфраструктура' ORDER BY name LIMIT 24",
         &subregion_ids
     )
     .fetch_all(&pool)
@@ -577,7 +634,7 @@ async fn get_region(
     })
     .collect();
     let nature = sqlx::query!(
-        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND type = 'Природа' ORDER BY name LIMIT 24",
+        "SELECT id, name, type, height, latitude, longitude FROM objects WHERE region_id = ANY($1) AND LOWER(type) = 'природа' ORDER BY name LIMIT 24",
         &subregion_ids
     )
     .fetch_all(&pool)
@@ -637,7 +694,7 @@ async fn get_region(
             FROM objects o
             LEFT JOIN trip_route tr ON tr.object_id = o.id
             LEFT JOIN trips t ON t.id = tr.trip_id
-            WHERE o.region_id = ANY($1) AND o.type = 'Вершина' AND o.height IS NOT NULL
+            WHERE o.region_id = ANY($1) AND LOWER(o.type) = 'вершина' AND o.height IS NOT NULL
             GROUP BY o.id, o.name, o.type, o.height, o.latitude, o.longitude
             ORDER BY o.height DESC
             LIMIT 21"#,
@@ -664,7 +721,7 @@ async fn get_region(
             FROM objects o
             LEFT JOIN trip_route tr ON tr.object_id = o.id
             LEFT JOIN trips t ON t.id = tr.trip_id
-            WHERE o.region_id = ANY($1) AND o.type = 'Перевал' AND o.height IS NOT NULL
+            WHERE o.region_id = ANY($1) AND LOWER(o.type) = 'перевал' AND o.height IS NOT NULL
             GROUP BY o.id, o.name, o.type, o.height, o.category, o.latitude, o.longitude
             ORDER BY o.height DESC
             LIMIT 21"#,
@@ -1317,4 +1374,14 @@ async fn get_trips_by_type(
         trips_with_route.push(TripWithRoute { trip, route });
     }
     Ok(trips_with_route)
+}
+
+async fn about_handler(State(pool): State<PgPool>) -> Html<String> {
+    let regions = get_regions_with_count(&pool).await;
+    Html(AboutTemplate { regions }.render().unwrap())
+}
+
+async fn contacts_handler(State(pool): State<PgPool>) -> Html<String> {
+    let regions = get_regions_with_count(&pool).await;
+    Html(ContactsTemplate { regions }.render().unwrap())
 } 

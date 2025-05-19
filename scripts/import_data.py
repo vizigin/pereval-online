@@ -138,6 +138,14 @@ class DataImporter:
         'Ручей': 49,
         'Ручей': 50
     }
+    # Новый словарь для type_id -> str
+    type_id_to_str = {
+        1: 'перевал',
+        2: 'вершина',
+        3: 'ледник',
+        4: 'объект инфраструктуры',
+        5: 'объект природы',
+    }
     
     def __init__(self, base_dir: Path):
         """Initialize importer with base directory"""
@@ -199,6 +207,20 @@ class DataImporter:
         print(f"Parsed region: {name} (ID: {region_id}, Parent: {parent_id})")  # Debug output
         return region_data
 
+    def get_type_from_name(self, name: str) -> int:
+        """Определяет тип объекта по названию (строго по ключевым словам)."""
+        name = name.lower().strip()
+        if any(x in name for x in ["перевал", "пер."]):
+            return 1  # перевал
+        if any(x in name for x in ["вершина", "пик", "г.", "гора"]):
+            return 2  # вершина
+        if "ледник" in name or "ледн." in name:
+            return 3  # ледник
+        if any(x in name for x in ["приют", "база", "лагерь", "хижина", "кордон", "турбаза", "а/л", "ст.", "пос.", "п/л", "приют"]):
+            return 4  # объект инфраструктуры
+        # Всё остальное — объект природы
+        return 5
+
     def parse_object(self, html_path: Path) -> Optional[Dict]:
         """Parse object data from HTML file."""
         try:
@@ -238,75 +260,8 @@ class DataImporter:
                 logging.error(f"КРИТИЧНО: object_id={object_id} Не удалось извлечь имя объекта из <span class='title-text'>. Пропускаем объект.")
                 return None # Пропускаем объект, если имя не найдено
 
-            # Improved object type detection
-            type_indicators = {
-                1: {  # Pass
-                    'keywords': ['перевал', 'пер.', 'перевальный', 'перевальный маршрут'],
-                    'patterns': [r'перевал\s+[а-яА-ЯёЁ]+', r'пер\.\s+[а-яА-ЯёЁ]+'],
-                    'priority': 1
-                },
-                2: {  # Peak
-                    'keywords': ['вершина', 'г.', 'пик', 'гора', 'верш.'],
-                    'patterns': [r'вершина\s+[а-яА-ЯёЁ]+', r'г\.\s+[а-яА-ЯёЁ]+', r'пик\s+[а-яА-ЯёЁ]+'],
-                    'priority': 2
-                },
-                3: {  # Glacier
-                    'keywords': ['ледник', 'ледн.', 'ледниковый'],
-                    'patterns': [r'ледник\s+[а-яА-ЯёЁ]+', r'ледн\.\s+[а-яА-ЯёЁ]+'],
-                    'priority': 3
-                },
-                4: {  # Infrastructure
-                    'keywords': ['приют', 'база', 'лагерь', 'хижина', 'приют'],
-                    'patterns': [r'приют\s+[а-яА-ЯёЁ]+', r'база\s+[а-яА-ЯёЁ]+', r'лагерь\s+[а-яА-ЯёЁ]+'],
-                    'priority': 4
-                },
-                5: {  # Nature
-                    'keywords': ['озеро', 'река', 'водопад', 'пещера', 'ущелье'],
-                    'patterns': [r'озеро\s+[а-яА-ЯёЁ]+', r'река\s+[а-яА-ЯёЁ]+', r'водопад\s+[а-яА-ЯёЁ]+'],
-                    'priority': 5
-                }
-            }
-
-            # Try to determine type using multiple methods
-            object_type = None
-            type_scores = {type_id: 0 for type_id in type_indicators.keys()}
-            
-            # Method 1: Check URL path
-            url_path = str(html_path).lower()
-            for type_id, type_info in type_indicators.items():
-                if any(keyword in url_path for keyword in type_info['keywords']):
-                    type_scores[type_id] += 2 * type_info['priority']
-                for pattern in type_info['patterns']:
-                    if re.search(pattern, url_path):
-                        type_scores[type_id] += 3 * type_info['priority']
-
-            # Method 2: Check content
-            content = soup.get_text().lower()
-            for type_id, type_info in type_indicators.items():
-                if any(keyword in content for keyword in type_info['keywords']):
-                    type_scores[type_id] += type_info['priority']
-                for pattern in type_info['patterns']:
-                    if re.search(pattern, content):
-                        type_scores[type_id] += 2 * type_info['priority']
-
-            # Method 3: Check headers
-            headers = [h.text.lower() for h in soup.find_all(['h1', 'h2', 'h3'])]
-            for type_id, type_info in type_indicators.items():
-                if any(keyword in ' '.join(headers) for keyword in type_info['keywords']):
-                    type_scores[type_id] += 2 * type_info['priority']
-                for pattern in type_info['patterns']:
-                    if re.search(pattern, ' '.join(headers)):
-                        type_scores[type_id] += 3 * type_info['priority']
-
-            # Select type with highest score
-            if type_scores:
-                max_score = max(type_scores.values())
-                if max_score > 0:
-                    object_type = max(type_scores.items(), key=lambda x: x[1])[0]
-
-            if not object_type:
-                logging.warning(f"Could not determine object type for {html_path}, defaulting to pass type")
-                object_type = 1  # Default to pass type
+            # Новый способ определения типа
+            object_type = self.get_type_from_name(object_name)
 
             # Improved coordinate parsing
             def parse_coordinates(text: str) -> Tuple[Optional[float], Optional[float]]:
@@ -407,14 +362,27 @@ class DataImporter:
                             if h_candidate is not None:
                                 height = h_candidate
                         if 'категор' in title:
-                            # Оставляем только значения 1А, 2Б, 3А, 4Б, 5А, 6Б и т.п. в любом месте строки
-                            m = re.search(r'([1-6][АБ])', value.upper())
+                            # Оставляем только значения 1А, 2Б, 3А, 4Б, 5А, 6Б, н/к и т.п.
+                            m = re.search(r'([1-6][АБ]|н/к)', value.upper())
                             if m:
                                 category = m.group(1)
                             else:
                                 category = None
                         if 'тип склона' in title:
-                            slope_type = value
+                            # Удаляем сезонные слова в начале строки
+                            value_clean = value
+                            for season in ['летом', 'зимой', 'осенью', 'весной', 'summer', 'winter', 'spring', 'autumn', 'fall']:
+                                value_clean = re.sub(rf'^\s*{season}\s*', '', value_clean, flags=re.IGNORECASE)
+                            # Оставляем только коды склонов (буквы, дефисы, пробелы)
+                            # Например: "сн-лд", "ск", "ос", "сн-ск-лд"
+                            # Удаляем всё, что не буквы, дефисы или пробелы
+                            value_clean = re.sub(r'[^а-яА-Яa-zA-Z\- ]', '', value_clean)
+                            value_clean = value_clean.strip('- ').replace('--', '-')
+                            # Если после очистки что-то осталось, используем
+                            if value_clean:
+                                slope_type = value_clean
+                            else:
+                                slope_type = None
             
             # 2. If not found in object__params, try 'table.height'
             if height is None:
@@ -477,68 +445,7 @@ class DataImporter:
                     description = None
 
             # Extract region with improved search
-            region = None
-            region_id = None
-            # --- Парсинг страны из блока object__country ---
-            country_code = None
-            country_full = None
-            country_div = soup.find('div', class_='object__country')
-            if country_div:
-                country_text = country_div.get_text(separator=' ', strip=True)
-                # Форматируем: убираем пробелы вокруг запятых
-                country_text = re.sub(r'\s*,\s*', ', ', country_text)
-                country_full = country_text  # Сохраняем полный текст
-                country_name = country_text.split(',')[0].strip()
-                country_map = {
-                    'Россия': 'RU', 'Russian Federation': 'RU', 'Russia': 'RU',
-                    'Казахстан': 'KZ', 'Kazakhstan': 'KZ',
-                    'Киргизия': 'KG', 'Кыргызстан': 'KG', 'Kyrgyzstan': 'KG',
-                    'Грузия': 'GE', 'Georgia': 'GE',
-                    'Таджикистан': 'TJ', 'Tajikistan': 'TJ',
-                    'Узбекистан': 'UZ', 'Uzbekistan': 'UZ',
-                    'Монголия': 'MN', 'Mongolia': 'MN',
-                    'Китай': 'CN', 'China': 'CN',
-                    'Абхазия': 'GE', 'Abkhazia': 'GE',
-                    'Армения': 'AM', 'Armenia': 'AM',
-                    'Турция': 'TR', 'Turkey': 'TR',
-                    'Азербайджан': 'AZ', 'Azerbaijan': 'AZ',
-                    'Иран': 'IR', 'Iran': 'IR',
-                    'Афганистан': 'AF', 'Afghanistan': 'AF',
-                    'Пакистан': 'PK', 'Pakistan': 'PK',
-                    'Индия': 'IN', 'India': 'IN',
-                }
-                code = country_map.get(country_name)
-                if code:
-                    country_code = code
-                else:
-                    country_code = country_name
-            # --- Конец парсинга страны ---
-            # Try breadcrumbs first
-            breadcrumbs = soup.find('div', class_='breadcrumb')
-            if breadcrumbs:
-                region_links = [a for a in breadcrumbs.find_all('a') if '/region/' in a.get('href', '')]
-                if region_links:
-                    region = region_links[-1].text.strip()
-                    # Try to find region ID
-                    for rid, rdata in self.regions.items():
-                        if rdata['name'] == region:
-                            region_id = rid
-                            break
-            # If not found in breadcrumbs, try content
-            if not region:
-                for p in soup.find_all(['p', 'div']):
-                    text = p.get_text().lower()
-                    if 'расположен' in text or 'находится' in text:
-                        for rid, rdata in self.regions.items():
-                            if rdata['name'].lower() in text:
-                                region = rdata['name']
-                                region_id = rid
-                                break
-                        if region:
-                            break
-
-            if object_id == 1069:
-                print(f"DEBUG 1069: region_id={region_id}, region='{region}'")
+            region_id, region = self.find_region_id_by_breadcrumbs(soup)
 
             # --- Новые поля из HTML ---
             # Источник информации
@@ -546,11 +453,19 @@ class DataImporter:
             prev_next_div = soup.find('div', class_='object__prev-next')
             if prev_next_div:
                 info_source = prev_next_div.get_text(strip=True)
+                # Удаляем фразу про анализ технических отчётов
+                info_source = re.sub(r'Информация сформирована на основе анализа технических отч[ёе]тов\.?', '', info_source).strip()
+                if not info_source:
+                    info_source = None
             # Дата обновления
             updated_at = None
             updated_div = soup.find('div', class_='object__updated')
             if updated_div:
                 updated_at = updated_div.get_text(strip=True)
+                # Убираем префикс "Обновлено: "
+                updated_at = re.sub(r'^Обновлено:\s*', '', updated_at).strip()
+                if not updated_at:
+                    updated_at = None
 
             # --- Новые поля ---
             # Альтернативные названия
@@ -627,6 +542,19 @@ class DataImporter:
                         break
 
             logging.info(f"[DEBUG] PRE-RESULT object_id={object_id} object_name='{object_name}' category='{category}' slope_type='{slope_type}'")
+
+            # Типы бывают только такие: перевал, вершина, ледник, объект инфраструктуры и объект природы
+            allowed_types = {
+                1: 'перевал',
+                2: 'вершина',
+                3: 'ледник',
+                4: 'объект инфраструктуры',
+                5: 'объект природы',
+            }
+            if object_type not in allowed_types:
+                # Если не входит в разрешённые, пропускаем объект
+                logging.warning(f"Object type {object_type} не входит в разрешённые типы, пропуск: {html_path}")
+                return None
 
             # Collect results with validation
             result = {
@@ -728,28 +656,22 @@ class DataImporter:
                     season = match.group(0)
             
             # Получаем регион
-            region_id = None
-            meta_region = soup.find('meta', attrs={'name': 'region'})
-            region_name = None
-            if meta_region:
-                region_name = meta_region.get('content')
-            else:
-                breadcrumb = soup.find('div', class_='breadcrumb')
-                if breadcrumb:
-                    region_links = [a for a in breadcrumb.find_all('a') if '/region/' in a.get('href', '')]
-                    if region_links:
-                        region_name = region_links[-1].text.strip()
-            if region_name:
-                for rid, rdata in self.regions.items():
-                    if rdata['name'] == region_name:
-                        region_id = rid
-                        break
+            region_id, region_name = self.find_region_id_by_breadcrumbs(soup)
             
             # Получаем автора
             author = None
             meta_author = soup.find('meta', attrs={'name': 'author'})
             if meta_author:
                 author = meta_author.get('content')
+            if not author:
+                # Новый способ: ищем div.trip__param > strong: 'Автор:' (точное совпадение)
+                for param in soup.find_all('div', class_='trip__param'):
+                    strong = param.find('strong')
+                    if strong and strong.get_text(strip=True).lower() == 'автор:':
+                        strong.extract()
+                        text = param.get_text(separator=' ', strip=True)
+                        author = text.strip()
+                        break
             if not author:
                 # Улучшенная регулярка: ищет Фамилия И.О. или Фамилия И. О.
                 author_match = re.search(r'Автор[:\s]+([А-Яа-яЁёA-Za-z\-]+\s[А-ЯЁA-Z]\.[А-ЯЁA-Z]\.|[А-Яа-яЁёA-Za-z\-]+\s[А-ЯЁA-Z]\.)', soup.text)
@@ -767,25 +689,15 @@ class DataImporter:
             if meta_city:
                 city = meta_city.get('content')
             if not city:
-                # Пытаемся найти город в тексте рядом с автором
-                city_match = re.search(r'(?:г\.|город)\s*([А-Яа-яA-Za-z\- ]+)', soup.text)
-                if city_match:
-                    city = city_match.group(1).strip()
-            if not city:
                 # Новый способ: ищем div.trip__param > strong: 'Город:' (точное совпадение)
                 for param in soup.find_all('div', class_='trip__param'):
                     strong = param.find('strong')
-                    debug_text = param.get_text(separator=' ', strip=True)
-                    if trip_id == 6422:
-                        logging.info(f"[DEBUG][trip_id=6422] trip__param raw: '{debug_text}'")
-                        if strong:
-                            logging.info(f"[DEBUG][trip_id=6422] strong: '{strong.get_text(strip=True)}'")
                     if strong and strong.get_text(strip=True).lower() == 'город:':
-                        # Берём текст после strong
                         strong.extract()
                         text = param.get_text(separator=' ', strip=True)
                         city = text.strip()
-                        logging.info(f"[DEBUG][trip_id=6422] Город после extract: '{city}'")
+                        if not city:
+                            city = None
                         break
 
             # Парсим маршрут
@@ -928,8 +840,8 @@ class DataImporter:
         return None
 
     def parse_regions_from_breadcrumbs(self, directory):
-        """Собрать все уникальные регионы и их иерархию из breadcrumbs объектов и походов."""
-        region_map = {}  # name -> id
+        """Собрать все уникальные регионы и их иерархию из breadcrumbs объектов и походов по полному пути."""
+        region_map = {}  # path_str -> id
         next_id = 1
         parent_map = {}  # id -> parent_id
         # Сначала объекты
@@ -940,18 +852,21 @@ class DataImporter:
             breadcrumbs = soup.find('div', class_='breadcrumb')
             if breadcrumbs:
                 parent_id = None
+                path = []
                 for a in breadcrumbs.find_all('a'):
                     href = a.get('href', '')
                     if '/region/' in href:
                         name = a.text.strip()
-                        if name not in region_map:
-                            region_map[name] = next_id
-                            self.regions[next_id] = {'id': next_id, 'name': name, 'parent_id': parent_id, 'root_region_id': None}
+                        path.append(name)
+                        path_str = '/'.join(path)
+                        if path_str not in region_map:
+                            region_map[path_str] = next_id
+                            self.regions[next_id] = {'id': next_id, 'name': name, 'parent_id': parent_id, 'root_region_id': None, 'path_str': path_str}
                             parent_map[next_id] = parent_id
                             parent_id = next_id
                             next_id += 1
                         else:
-                            parent_id = region_map[name]
+                            parent_id = region_map[path_str]
         # Теперь походы
         trip_files = glob.glob(os.path.join(directory, 'trip', '*', 'index.html'))
         for trip_file in trip_files:
@@ -960,53 +875,85 @@ class DataImporter:
             breadcrumbs = soup.find('div', class_='breadcrumb')
             if breadcrumbs:
                 parent_id = None
+                path = []
                 for a in breadcrumbs.find_all('a'):
                     href = a.get('href', '')
                     if '/region/' in href:
                         name = a.text.strip()
-                        if name not in region_map:
-                            region_map[name] = next_id
-                            self.regions[next_id] = {'id': next_id, 'name': name, 'parent_id': parent_id, 'root_region_id': None}
+                        path.append(name)
+                        path_str = '/'.join(path)
+                        if path_str not in region_map:
+                            region_map[path_str] = next_id
+                            self.regions[next_id] = {'id': next_id, 'name': name, 'parent_id': parent_id, 'root_region_id': None, 'path_str': path_str}
                             parent_map[next_id] = parent_id
                             parent_id = next_id
                             next_id += 1
                         else:
-                            parent_id = region_map[name]
+                            parent_id = region_map[path_str]
+
+    def find_region_id_by_breadcrumbs(self, soup):
+        """Ищет region_id по полному пути из breadcrumbs."""
+        breadcrumbs = soup.find('div', class_='breadcrumb')
+        if breadcrumbs:
+            path = []
+            for a in breadcrumbs.find_all('a'):
+                href = a.get('href', '')
+                if '/region/' in href:
+                    name = a.text.strip()
+                    path.append(name)
+            path_str = '/'.join(path)
+            for rid, rdata in self.regions.items():
+                if rdata.get('path_str') == path_str:
+                    return rid, rdata['name']
+        return None, None
 
     def scan_directory(self, directory):
         print(f"Scanning directory: {directory}")  # Debug output
-        # Удаляем парсинг regions
-        # Сначала собираем регионы из breadcrumbs
         self.parse_regions_from_breadcrumbs(directory)
         print(f"Parsed {len(self.regions)} regions from breadcrumbs")
-        # Далее всё как раньше: объекты, trips, фото
+        # Сначала собираем список файлов объектов
         object_files = glob.glob(os.path.join(directory, 'object', '*', 'index.html'))
-        print(f"Found {len(object_files)} object files")  # Debug output
+        # Всегда добавляем файл для объекта 6055
+        file_6055 = os.path.join(directory, 'object', '6055', 'index.html')
+        files_set = set(object_files)
+        if file_6055 not in files_set and os.path.exists(file_6055):
+            files_set.add(file_6055)
+        object_files = list(files_set)
+        print(f"Found {len(object_files)} object files (with 6055 forced)")  # Debug output
         object_ids = []
         for object_file in object_files:
             print(f"Processing object file: {object_file}")  # Debug output
             object_path = Path(object_file)
-            object_data = self.parse_object(object_path)
+            # --- Новый способ: ищем region_id только по полному пути breadcrumbs ---
+            with open(object_file, 'r', encoding='utf-8') as f:
+                soup = BeautifulSoup(f.read(), 'html.parser')
+            region_id, region_name = self.find_region_id_by_breadcrumbs(soup)
+            if not region_id:
+                print(f"[SKIP] Не найден region_id по breadcrumbs для {object_file}")
+                continue
+            object_data = self.parse_object_with_region(object_path, region_id, region_name)
             if object_data:
                 object_ids.append(object_data['id'])
-                if object_data['id'] == 1069:
-                    logging.info(f"[OBJECT_STORE_DEBUG] id=1069 name='{object_data['name']}' height={object_data['height']} from='{object_path}' (before store)")
-                if object_data['id'] in self.objects:
-                    logging.info(f"[OBJECT_OVERWRITE_DEBUG] id={object_data['id']} name={object_data['name']} height={object_data['height']} from='{object_path}' (overwriting existing object)")
                 self.objects[object_data['id']] = object_data
                 print(f"Added object: {object_data['name']} (ID: {object_data['id']})")  # Debug output
         print(f"Imported object IDs: {object_ids}")  # Debug output
-        # Process trips
+        # Аналогично для trips
         trip_files = glob.glob(os.path.join(directory, 'trip', '*', 'index.html'))
         print(f"Found {len(trip_files)} trip files")  # Debug output
         for trip_file in trip_files:
             print(f"Processing trip file: {trip_file}")  # Debug output
             with open(trip_file, 'r', encoding='utf-8') as f:
-                trip_data = self.parse_trip(trip_file)
-                if trip_data:
-                    self.trips[trip_data['id']] = trip_data
-                    print(f"Added trip: {trip_data['id']}")  # Debug output
-        # Process photos
+                soup = BeautifulSoup(f.read(), 'html.parser')
+            region_id, region_name = self.find_region_id_by_breadcrumbs(soup)
+            if not region_id:
+                print(f"[SKIP] Не найден region_id по breadcrumbs для {trip_file}")
+                continue
+            trip_data = self.parse_trip(trip_file)
+            if trip_data:
+                trip_data['region_id'] = region_id
+                self.trips[trip_data['id']] = trip_data
+                print(f"Added trip: {trip_data['id']}")  # Debug output
+        # Process photos (без ограничений)
         photo_files = glob.glob(os.path.join(directory, 'photo', '*', 'index.html'))
         print(f"Found {len(photo_files)} photo files")  # Debug output
         for photo_file in photo_files:
@@ -1016,6 +963,225 @@ class DataImporter:
                 if photo_data:
                     self.photos.append(photo_data)
                     print(f"Added photo: {photo_data['title']}")  # Debug output
+
+    def parse_object_with_region(self, html_path: Path, region_id, region_name) -> Optional[Dict]:
+        """Fallback: парсинг объекта с подстановкой region_id и region_name вручную."""
+        try:
+            with open(html_path, 'r', encoding='utf-8') as f:
+                soup = BeautifulSoup(f.read(), 'html.parser')
+            # ... копируем всё из parse_object, но region_id и region не ищем, а подставляем из аргументов ...
+            # --- Извлечение имени объекта ---
+            object_name = None
+            title_span = soup.find('span', class_='title-text')
+            if title_span and title_span.text:
+                temp_name = title_span.text.strip()
+                if temp_name:
+                    object_name = temp_name
+            if not object_name:
+                return None
+            object_type = self.get_type_from_name(object_name)
+            # ... остальной код аналогично parse_object ...
+            # (можно скопировать из parse_object, но region_id и region не ищем, а подставляем)
+            # --- Остальной код ---
+            # Improved coordinate parsing
+            def parse_coordinates(text: str) -> tuple:
+                if not text:
+                    return None, None
+                text = re.sub(r'\s+', ' ', text.strip())
+                patterns = [
+                    (r'(\d+)°(\d+)\'(\d+)"([NS])\s+(\d+)°(\d+)\'(\d+)"([EW])', lambda m: (
+                        float(m.group(1)) + float(m.group(2))/60 + float(m.group(3))/3600,
+                        float(m.group(5)) + float(m.group(6))/60 + float(m.group(7))/3600,
+                        m.group(4), m.group(8)
+                    )),
+                    (r'(\d+\.?\d*)°([NS])\s+(\d+\.?\d*)°([EW])', lambda m: (
+                        float(m.group(1)), float(m.group(3)), m.group(2), m.group(4)
+                    )),
+                    (r'(\d+\.?\d*),\s*(\d+\.?\d*)', lambda m: (
+                        float(m.group(1)), float(m.group(2)), 'N', 'E'
+                    )),
+                    (r'([NS])(\d+\.?\d*)\s+([EW])(\d+\.?\d*)', lambda m: (
+                        float(m.group(2)), float(m.group(4)), m.group(1), m.group(3)
+                    )),
+                    (r'(\d+)°(\d+\.\d*)\'([NS])\s+(\d+)°(\d+\.\d*)\'([EW])', lambda m: (
+                        float(m.group(1)) + float(m.group(2))/60,
+                        float(m.group(4)) + float(m.group(5))/60,
+                        m.group(3), m.group(6)
+                    ))
+                ]
+                for pattern, converter in patterns:
+                    match = re.search(pattern, text)
+                    if match:
+                        try:
+                            lat, lon, lat_dir, lon_dir = converter(match)
+                            if lat_dir == 'S': lat = -lat
+                            if lon_dir == 'W': lon = -lon
+                            if -90 <= lat <= 90 and -180 <= lon <= 180:
+                                return lat, lon
+                        except (ValueError, IndexError):
+                            continue
+                return None, None
+            coords_text = None
+            coords_table = soup.find('table', class_='coords')
+            if coords_table:
+                coords_text = coords_table.get_text()
+            else:
+                for p in soup.find_all(['p', 'div']):
+                    text = p.get_text()
+                    if '°' in text and ('N' in text or 'S' in text or 'E' in text or 'W' in text):
+                        if any(word in text.lower() for word in ['координаты', 'широта', 'долгота', 'местоположение']):
+                            coords_text = text
+                            break
+                        elif not coords_text:
+                            coords_text = text
+            lat, lon = parse_coordinates(coords_text) if coords_text else (None, None)
+            if lat is not None:
+                lat = round(lat, 5)
+            if lon is not None:
+                lon = round(lon, 5)
+            height = None
+            params_div = soup.find('div', class_='object__params')
+            category = None
+            slope_type = None
+            if params_div:
+                for param in params_div.find_all('div', class_='object__param'):
+                    title_span = param.find('span', class_='object__param-title')
+                    value_span = param.find('span', class_='object__param-value')
+                    if title_span and value_span:
+                        title = title_span.get_text(strip=True).lower()
+                        value = value_span.get_text(strip=True)
+                        if 'высота' in title:
+                            h_candidate = parse_height(value)
+                            if h_candidate is not None:
+                                height = h_candidate
+                        if 'категор' in title:
+                            m = re.search(r'([1-6][АБ]|н/к)', value.upper())
+                            if m:
+                                category = m.group(1)
+                            else:
+                                category = None
+                        if 'тип склона' in title:
+                            value_clean = value
+                            for season in ['летом', 'зимой', 'осенью', 'весной', 'summer', 'winter', 'spring', 'autumn', 'fall']:
+                                value_clean = re.sub(rf'^\s*{season}\s*', '', value_clean, flags=re.IGNORECASE)
+                            value_clean = re.sub(r'[^а-яА-Яa-zA-Z\- ]', '', value_clean)
+                            value_clean = value_clean.strip('- ').replace('--', '-')
+                            if value_clean:
+                                slope_type = value_clean
+                            else:
+                                slope_type = None
+            # ... остальные поля аналогично parse_object ...
+            # --- Новые поля из HTML ---
+            info_source = None
+            prev_next_div = soup.find('div', class_='object__prev-next')
+            if prev_next_div:
+                info_source = prev_next_div.get_text(strip=True)
+                info_source = re.sub(r'Информация сформирована на основе анализа технических отч[ёе]тов\.?', '', info_source).strip()
+                if not info_source:
+                    info_source = None
+            updated_at = None
+            updated_div = soup.find('div', class_='object__updated')
+            if updated_div:
+                updated_at = updated_div.get_text(strip=True)
+                updated_at = re.sub(r'^Обновлено:\s*', '', updated_at).strip()
+                if not updated_at:
+                    updated_at = None
+            alt_names = None
+            alt_names_elem = soup.find('div', class_='alt-names')
+            if alt_names_elem:
+                alt_names = alt_names_elem.get_text(strip=True)
+            connects = None
+            if object_type == 1:
+                for p in soup.find_all(['p', 'div']):
+                    text = p.get_text().lower()
+                    if 'соединяет' in text:
+                        m = re.search(r'соединяет[:\s]*([\w\d\-, ]+)', text)
+                        if m:
+                            connects = m.group(1)
+                            break
+            complexity = None
+            if object_type == 1:
+                for p in soup.find_all(['p', 'div']):
+                    text = p.get_text().lower()
+                    if 'сложность' in text:
+                        m = re.search(r'сложность[:\s]*([\w\d\- ]+)', text)
+                        if m:
+                            complexity = m.group(1)
+                            break
+            border_distance = None
+            for p in soup.find_all(['p', 'div']):
+                text = p.get_text().lower()
+                if 'граница' in text and ('расстояние' in text or 'до границы' in text):
+                    m = re.search(r'менее\s*([\d\.,]+)\s*км', text)
+                    if m:
+                        try:
+                            border_distance = float(m.group(1).replace(',', '.'))
+                        except ValueError:
+                            pass
+                        break
+                    m = re.search(r'менее\s*([\d\.,]+)\s*м', text)
+                    if m:
+                        try:
+                            border_distance = float(m.group(1).replace(',', '.')) / 1000.0
+                        except ValueError:
+                            pass
+                        break
+                    m = re.search(r'расстояние до границы[:\s]*([\d\.,]+)', text)
+                    if m:
+                        try:
+                            border_distance = float(m.group(1).replace(',', '.'))
+                        except ValueError:
+                            pass
+                        break
+            glacier_history = None
+            if object_type == 5:
+                for p in soup.find_all(['p', 'div']):
+                    text = p.get_text().lower()
+                    if 'история' in text and 'ледник' in text:
+                        glacier_history = text
+                        break
+            allowed_types = {
+                1: 'перевал',
+                2: 'вершина',
+                3: 'ледник',
+                4: 'объект инфраструктуры',
+                5: 'объект природы',
+            }
+            if object_type not in allowed_types:
+                return None
+            try:
+                object_id = int(html_path.parent.name)
+            except Exception:
+                return None
+            result = {
+                'id': object_id,
+                'name': object_name,
+                'type_id': object_type,
+                'region': region_name,
+                'region_id': region_id,
+                'country_code': None,
+                'country_full': None,
+                'latitude': lat,
+                'longitude': lon,
+                'height': height,
+                'area': None,
+                'description': None,
+                'is_verified': False,
+                'complexity': complexity,
+                'slope_type': slope_type,
+                'border_distance': border_distance,
+                'alt_names': alt_names,
+                'category': category,
+                'connects': connects,
+                'glacier_history': glacier_history,
+                'info_source': info_source,
+                'updated_at': updated_at
+            }
+            if not result['name'] or not result['type_id']:
+                return None
+            return result
+        except Exception:
+            return None
 
     def sql_value(self, val):
         """Безопасное преобразование значения для SQL."""
@@ -1066,7 +1232,7 @@ class DataImporter:
         
         # Add objects
         for obj in self.objects.values():
-            type_str = self.object_types.get(obj['type_id'], None)
+            type_str = self.type_id_to_str.get(obj['type_id'], None)
             logging.info(f"[SQL GENERATE] id={obj['id']} name={obj['name']} height={obj.get('height')}")
             sql.append(f"""INSERT INTO objects (id, name, type, region_id, country_code, country_full, parent_id, height, \
                 latitude, longitude, description, border_distance, info_source, updated_at, category, slope_type)
