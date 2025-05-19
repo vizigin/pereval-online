@@ -59,6 +59,7 @@ pub struct RegionsTemplate {
 #[template(path = "search.html")]
 pub struct SearchTemplate {
     pub regions: Vec<RegionInfo>,
+    pub objects: Vec<ObjectInfo>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -307,7 +308,7 @@ async fn get_regions_with_count(pool: &PgPool) -> Vec<RegionInfo> {
 
     // DEBUG: Вывод результатов из базы
     for row in &rows {
-        println!("[DEBUG get_regions_with_count] Region: {}, Count: {:?}", row.name, row.count);
+        // println!('[DEBUG get_regions_with_count] Region: {}, Count: {:?}', row.name, row.count);
     }
 
     rows.into_iter().map(|row| RegionInfo {
@@ -371,7 +372,28 @@ async fn regions_handler(State(pool): State<PgPool>) -> Result<Html<String>, axu
 
 async fn search_handler(State(pool): State<PgPool>) -> Html<String> {
     let regions = get_regions_with_count(&pool).await;
-    Html(SearchTemplate { regions }.render().unwrap())
+    let objects = sqlx::query!(
+        r#"SELECT o.id, o.name, o.type, o.height, o.category, o.latitude, o.longitude
+            FROM objects o
+            ORDER BY o.name
+            LIMIT 24"#
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap_or_default()
+    .into_iter()
+    .map(|row| ObjectInfo {
+        id: row.id,
+        name: row.name,
+        object_type: row.r#type.map(|s| s.to_string()),
+        height: row.height.map(|h| h as i32),
+        category: row.category.map(|s| s.to_string()),
+        latitude: row.latitude.and_then(|v| v.to_f64()),
+        longitude: row.longitude.and_then(|v| v.to_f64()),
+        reports_count: 0i64,
+    })
+    .collect();
+    Html(SearchTemplate { regions, objects }.render().unwrap())
 }
 
 async fn get_stats(
@@ -611,7 +633,7 @@ async fn get_region(
         category: None,
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
-        reports_count: 0,
+        reports_count: 0i64,
     })
     .collect();
     let infrastructure = sqlx::query!(
@@ -630,7 +652,7 @@ async fn get_region(
         category: None,
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
-        reports_count: 0,
+        reports_count: 0i64,
     })
     .collect();
     let nature = sqlx::query!(
@@ -649,7 +671,7 @@ async fn get_region(
         category: None,
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
-        reports_count: 0,
+        reports_count: 0i64,
     })
     .collect();
 
@@ -972,9 +994,9 @@ async fn get_object(
     let trips_tabs = ObjectTripsTabs { total_count, by_type };
     // DEBUG: печатаем, что реально попало в by_type
     for (k, v) in &trips_tabs.by_type {
-        println!("[DEBUG] by_type: {} -> {}", k, v.len());
+        // println!('[DEBUG] by_type: {} -> {}', k, v.len());
     }
-    println!("[DEBUG] total_count: {}", trips_tabs.total_count);
+    // println!('[DEBUG] total_count: {}', trips_tabs.total_count);
 
     // --- Новый код: ближайшие объекты ---
     let (latitude, longitude) = match (&object.latitude, &object.longitude) {
@@ -1009,7 +1031,7 @@ async fn get_object(
             category: None,
             latitude: row.latitude.and_then(|v| v.to_f64()),
             longitude: row.longitude.and_then(|v| v.to_f64()),
-            reports_count: 0,
+            reports_count: 0i64,
         };
         let name_lower = row.name.to_lowercase();
         if name_lower.contains("верш") || name_lower.contains("пик") {
@@ -1106,13 +1128,6 @@ async fn get_trip(
     .fetch_optional(&pool)
     .await?;
 
-    if let Some(ref record) = trip_check {
-        println!("[TEMP DEBUG] Checked trip id: {}, Checked region_id: {:?}", record.id, record.region_id);
-    } else {
-        println!("[TEMP DEBUG] Trip with id {} not found for region_id check.", id);
-        // Дальнейший код оригинальной загрузки trip выполнится и вернет NotFound
-    }
-
     // Оригинальная загрузка trip оставлена пока как есть, 
     // но теперь мы будем знать, что приходит в trip_check.region_id
     let trip = sqlx::query_as!(
@@ -1139,15 +1154,19 @@ async fn get_trip(
     .map(|r| (r.id, r.name, r.parent_id))
     .collect();
 
-    // DEBUG: выводим region_id и массив регионов
-    println!("[DEBUG] trip.id={} region_id={:?}", trip.id, trip.region_id);
-    for (reg_id, reg_name, reg_parent_id) in &regions {
-        println!("[DEBUG] region from list: id={} name='{}' parent_id={:?}", reg_id, reg_name, reg_parent_id);
-    }
-
-    let region_breadcrumbs = build_region_breadcrumbs_common(trip.region_id, &regions);
+    // Получаем список всех регионов с parent_id для построения breadcrumbs
+    let all_regions: Vec<(i32, String, Option<i32>)> = sqlx::query_as!(
+        RegionWithParent,
+        "SELECT id, name, parent_id FROM regions"
+    )
+    .fetch_all(&pool)
+    .await?
+    .into_iter()
+    .map(|r| (r.id, r.name, r.parent_id))
+    .collect();
+    let region_breadcrumbs = build_region_breadcrumbs_common(trip.region_id, &all_regions);
     // DEBUG: выводим результат построения хлебных крошек
-    println!("[DEBUG] region_breadcrumbs for trip {}: {:?}", trip.id, region_breadcrumbs);
+    // println!('[DEBUG] region_breadcrumbs for trip {}: {:?}', trip.id, region_breadcrumbs);
 
     let region_name = region_breadcrumbs.last().map(|r| r.name.clone());
     let mut parts = vec![];
