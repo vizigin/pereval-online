@@ -27,7 +27,3 @@ num-traits = "0.2"
 [[bin]]
 name = "pereval-backend"
 path = "src/main.rs"
-
-[[bin]]
-name = "import_data"
-path = "src/bin/import_data.rs"
