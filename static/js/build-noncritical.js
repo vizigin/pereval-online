@@ -4422,6 +4422,7 @@ Yandex Map UI
  */
 
 function map_load() {
+    console.log('map_load called');
     if ($(".js-map").not('.js-map-on-scroll').length && !$("html").hasClass("maps-api-loaded")) {
         $("html").addClass("maps-api-loaded");
         var script = document.createElement('script');
@@ -4437,6 +4438,7 @@ function map_load() {
 }
 
 function map_init() {
+    console.log('map_init called');
     if (typeof ymaps === "undefined") {
         return;
     }
@@ -4453,7 +4455,7 @@ function map_init() {
                     'osm_topo': {
                         tileUrlTemplate: function(tileNumber, tileZoom){
                             var subdomains = ['a','b','c'];
-                            var url = '//%d.tile.opentopomap.org/%z/%x/%y.png'; // '//web.archive.org/web/20241008144813/https://tile.openstreetmap.org/%z/%x/%y.png',
+                            var url = '//%d.tile.opentopomap.org/%z/%x/%y.png'; // 'https://tile.openstreetmap.org/%z/%x/%y.png',
                             var ymax = 1 << tileZoom;
                             var y = ymax - tileNumber[1] - 1;
                             y = Math.pow(2, tileZoom) - y - 1;
@@ -4472,7 +4474,7 @@ function map_init() {
                     'osm': {
                         tileUrlTemplate: function(tileNumber, tileZoom){
                             var subdomains = ['a','b','c'];
-                            var url = '//web.archive.org/web/20241008144813/https://tile.openstreetmap.org/%z/%x/%y.png';
+                            var url = 'https://tile.openstreetmap.org/%z/%x/%y.png';
                             var ymax = 1 << tileZoom;
                             var y = ymax - tileNumber[1] - 1;
                             y = Math.pow(2, tileZoom) - y - 1;
@@ -4498,7 +4500,7 @@ function map_init() {
                             // s = satellite only
                             // t = terrain only
                             // y = hybrid
-                            var url = '//web.archive.org/web/20241008144813/https://mt%d.google.com/vt/lyrs=s&x=%x&y=%y&z=%z';
+                            var url = 'https://mt%d.google.com/vt/lyrs=s&x=%x&y=%y&z=%z';
                             var ymax = 1 << tileZoom;
                             var y = ymax - tileNumber[1] - 1;
                             y = Math.pow(2, tileZoom) - y - 1;
@@ -4517,7 +4519,7 @@ function map_init() {
                     },
                     'bing': {
                         tileUrlTemplate: function(tileNumber, tileZoom){
-                            var url = '//web.archive.org/web/20241008144813/https://ecn.{subdomain}.tiles.virtualearth.net/tiles/a{quadkey}.jpeg?g=5864&mkt=ru&shading=hill';
+                            var url = 'https://ecn.{subdomain}.tiles.virtualearth.net/tiles/a{quadkey}.jpeg?g=5864&mkt=ru&shading=hill';
 
                             var subdomains = ['t0','t1','t2','t3'],
                                 quadDigits = [],
@@ -4561,7 +4563,7 @@ function map_init() {
                             if (tileZoom > 13) {
                                 type = types[2];
                             }
-                            var url = 'https://web.archive.org/web/20241008144813/https://tiles.nakarte.me/topo'+type+'/%z/%x/%y';
+                            var url = 'https://tiles.nakarte.me/topo'+type+'/%z/%x/%y';
                             var ymax = 1 << tileZoom;
                             var y = ymax - tileNumber[1] - 1;
                             //y = Math.pow(2, tileZoom) - y - 1;
@@ -4590,7 +4592,7 @@ function map_init() {
                             if (tileZoom > 14) {
                                 type = types[3];
                             }
-                            var url = 'https://web.archive.org/web/20241008144813/https://tiles.nakarte.me/ggc'+type+'/%z/%x/%y';
+                            var url = 'https://tiles.nakarte.me/ggc'+type+'/%z/%x/%y';
                             var ymax = 1 << tileZoom;
                             var y = ymax - tileNumber[1] - 1;
                             //y = Math.pow(2, tileZoom) - y - 1;
@@ -4744,6 +4746,7 @@ function map_init() {
                 $map.data("map", map);
                 map.$map = $map;
 
+                console.log('calling map_controls_init');
                 map_controls_init($map);
 
                 var ruler = map.controls.add('rulerControl', {
@@ -4975,7 +4978,7 @@ function map_context_menu_open(e, $map, content) {
 }
 
 function map_on_scroll_init($o, context) {
-
+    console.log('map_on_scroll_init called');
     if (!$("html").hasClass("js-map-on-scroll-inited")) {
 
         if (!("IntersectionObserver" in window)) {
@@ -5023,6 +5026,7 @@ function map_on_scroll_load_depricated($o, context) {
 }
 
 function map_on_scroll_load_change($o, callback) {
+    console.log('map_on_scroll_load_change called');
     $o.removeClass('js-map-on-scroll');
     map_load();
     $o.addClass("js-map-on-scroll-loaded");
@@ -5677,6 +5681,7 @@ function map_add_object_shape(map, object_id, shape) {
 * Инициализация контролов карты
  */
 function map_controls_init($map) {
+    console.log('map_controls_init called');
     var map = $map.data("map");
     $map.append(tmpl("tmpl-map-controls"));
     try {
@@ -5687,6 +5692,9 @@ function map_controls_init($map) {
     }
     $map.append(tmpl("tmpl-map-multitouch-required"));
     textfield_init($(".map-controls .textfield"));
+    var $tooltipControls = $map.find('.map-controls .tooltip, .map-controls .tooltip-popover');
+console.log('Tooltip init (original logic):', $tooltipControls.length, $tooltipControls);
+tooltip_init($tooltipControls);
     setTimeout(function(){
         $(".map-controls").addClass("active");
     }, 50);
@@ -6640,11 +6648,16 @@ function bind_widgets(context) {
         image_sortable_init();
     }
 }
-
 //# sourceMappingURL=build-noncritical.js.map
 
 
 }
+$(function() {
+    // Принудительно переинициализируем все тултипы на странице
+    if (window.tooltip_init) {
+        tooltip_init($('.tooltip, .tooltip-popover'));
+    }
+});
 /*
      FILE ARCHIVED ON 14:48:13 Oct 08, 2024 AND RETRIEVED FROM THE
      INTERNET ARCHIVE ON 11:22:29 May 16, 2025.

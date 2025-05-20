@@ -5766,10 +5766,6 @@ Sidebar Left
   transition: all 0.2s 0.06667s;
 }
 
-.w-loginbar .aside__scroll {
-  bottom: 100px;
-}
-
 @media (max-width: 1023px) {
   .w-loginbar .aside__scroll {
     bottom: auto;
