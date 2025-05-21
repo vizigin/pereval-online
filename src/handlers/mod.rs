@@ -115,12 +115,14 @@ pub struct ObjectInfo {
     pub latitude: Option<f64>,
     pub longitude: Option<f64>,
     pub reports_count: i64,
+    pub distance: Option<f64>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct ObjectTripsTabs {
     pub total_count: usize,
     pub by_type: std::collections::BTreeMap<&'static str, Vec<TripWithRoute>>,
+    pub by_type_preview: std::collections::BTreeMap<&'static str, Vec<(Trip, Vec<RoutePointPreview>)>>,
 }
 
 #[derive(Template)]
@@ -175,6 +177,9 @@ pub struct TripTemplateData {
     pub title_text: String,
     pub route: Vec<TripRoute>,
     pub tlib_url: Option<String>,
+    pub polyline_coords: Vec<(f64, f64)>,
+    pub bounds: Option<((f64, f64), (f64, f64))>,
+    pub polyline_object_ids: Vec<i32>,
 }
 
 #[derive(Template)]
@@ -206,6 +211,14 @@ pub struct AboutTemplate {
 #[template(path = "contacts.html")]
 pub struct ContactsTemplate {
     pub regions: Vec<RegionInfo>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RoutePointPreview {
+    pub id: i32,
+    pub name: Option<String>,
+    pub is_active: bool,
+    pub is_near_active: bool,
 }
 
 // Кастомный фильтр для форматирования числа с пробелами между тысячами
@@ -391,6 +404,7 @@ async fn search_handler(State(pool): State<PgPool>) -> Html<String> {
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
         reports_count: 0i64,
+        distance: None,
     })
     .collect();
     Html(SearchTemplate { regions, objects }.render().unwrap())
@@ -589,6 +603,7 @@ async fn get_region(
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
         reports_count: row.reports_count.unwrap_or(0),
+        distance: None,
     })
     .collect();
     let vertices = sqlx::query!(
@@ -615,6 +630,7 @@ async fn get_region(
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
         reports_count: row.reports_count.unwrap_or(0),
+        distance: None,
     })
     .collect();
     let glaciers = sqlx::query!(
@@ -634,6 +650,7 @@ async fn get_region(
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
         reports_count: 0i64,
+        distance: None,
     })
     .collect();
     let infrastructure = sqlx::query!(
@@ -653,6 +670,7 @@ async fn get_region(
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
         reports_count: 0i64,
+        distance: None,
     })
     .collect();
     let nature = sqlx::query!(
@@ -672,6 +690,7 @@ async fn get_region(
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
         reports_count: 0i64,
+        distance: None,
     })
     .collect();
 
@@ -735,6 +754,7 @@ async fn get_region(
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
         reports_count: row.reports_count.unwrap_or(0),
+        distance: None,
     })
     .collect();
     // Получаем высочайшие перевалы (limit 21, по убыванию высоты)
@@ -762,6 +782,7 @@ async fn get_region(
         latitude: row.latitude.and_then(|v| v.to_f64()),
         longitude: row.longitude.and_then(|v| v.to_f64()),
         reports_count: row.reports_count.unwrap_or(0),
+        distance: None,
     })
     .collect();
 
@@ -778,7 +799,7 @@ async fn get_region(
     by_type.insert("Лыжный", lyzhniy_trips);
     by_type.insert("Горно-пеший", gornopeshiy_trips);
     let total_count = by_type.values().map(|v| v.len()).sum();
-    let region_trips_tabs = ObjectTripsTabs { total_count, by_type };
+    let region_trips_tabs = ObjectTripsTabs { total_count, by_type, by_type_preview: std::collections::BTreeMap::new() };
 
     // --- Считаем статистику по походам (trips) ---
     let trips_total_row = sqlx::query_scalar!(
@@ -898,8 +919,8 @@ async fn get_object(
     .await?
     .ok_or_else(|| AppError::NotFound(format!("Object {} not found", id)))?;
 
-    let lat = object.latitude.as_ref().map(|v| v.to_string());
-    let lng = object.longitude.as_ref().map(|v| v.to_string());
+    let lat = format_coord(&object.latitude);
+    let lng = format_coord(&object.longitude);
 
     // Получаем все регионы с parent_id
     let regions: Vec<(i32, String, Option<i32>)> = sqlx::query_as!(
@@ -956,6 +977,7 @@ async fn get_object(
 
     // Группируем по нужным типам маршрутов
     let mut by_type: std::collections::BTreeMap<&'static str, Vec<TripWithRoute>> = std::collections::BTreeMap::new();
+    let mut by_type_preview: std::collections::BTreeMap<&'static str, Vec<(Trip, Vec<RoutePointPreview>)>> = std::collections::BTreeMap::new();
     let mut total_count = 0;
     for trip in trip_rows {
         let ttype = match trip.r#type.as_deref().map(str::trim) {
@@ -988,10 +1010,11 @@ async fn get_object(
         )
         .fetch_all(&pool)
         .await?;
-        by_type.entry(ttype).or_default().push(TripWithRoute { trip, route });
+        by_type.entry(ttype).or_default().push(TripWithRoute { trip: trip.clone(), route: route.clone() });
+        by_type_preview.entry(ttype).or_default().push((trip, build_route_preview(&route, object.id)));
         total_count += 1;
     }
-    let trips_tabs = ObjectTripsTabs { total_count, by_type };
+    let trips_tabs = ObjectTripsTabs { total_count, by_type, by_type_preview };
     // DEBUG: печатаем, что реально попало в by_type
     for (k, v) in &trips_tabs.by_type {
         // println!('[DEBUG] by_type: {} -> {}', k, v.len());
@@ -1007,12 +1030,16 @@ async fn get_object(
     let longitude_bd = BigDecimal::from_str(&longitude.to_string()).unwrap();
     let nearest_rows = sqlx::query!(
         r#"
-        SELECT id, name, type, height, latitude, longitude
-        FROM objects
-        WHERE id != $1
-          AND latitude IS NOT NULL AND longitude IS NOT NULL
-          AND sqrt(power((latitude - $2) * 111.32, 2) + power((longitude - $3) * 71.5, 2)) <= 10
-        ORDER BY sqrt(power((latitude - $2) * 111.32, 2) + power((longitude - $3) * 71.5, 2))
+        SELECT o.id, o.name, o.type, o.height, o.latitude, o.longitude,
+               sqrt(power((o.latitude - $2) * 111.32, 2) + power((o.longitude - $3) * 71.5, 2)) as distance,
+               COUNT(DISTINCT tr.trip_id) as reports_count
+        FROM objects o
+        LEFT JOIN trip_route tr ON tr.object_id = o.id
+        WHERE o.id != $1
+          AND o.latitude IS NOT NULL AND o.longitude IS NOT NULL
+          AND sqrt(power((o.latitude - $2) * 111.32, 2) + power((o.longitude - $3) * 71.5, 2)) <= 10
+        GROUP BY o.id, o.name, o.type, o.height, o.latitude, o.longitude
+        ORDER BY distance
         LIMIT 100
         "#,
         id, latitude_bd, longitude_bd
@@ -1031,7 +1058,8 @@ async fn get_object(
             category: None,
             latitude: row.latitude.and_then(|v| v.to_f64()),
             longitude: row.longitude.and_then(|v| v.to_f64()),
-            reports_count: 0i64,
+            reports_count: row.reports_count.unwrap_or(0),
+            distance: row.distance.and_then(|d| d.to_f64()).map(|d| (d * 10.0).round() / 10.0),
         };
         let name_lower = row.name.to_lowercase();
         if name_lower.contains("верш") || name_lower.contains("пик") {
@@ -1201,6 +1229,28 @@ async fn get_trip(
     .fetch_all(&pool)
     .await?;
 
+    // --- Новое: вычисляем polyline и bounds ---
+    let mut polyline_coords = Vec::new();
+    let mut polyline_object_ids = Vec::new();
+    for pt in &route {
+        if let (Some(lat), Some(lng)) = (pt.latitude, pt.longitude) {
+            polyline_coords.push((lat, lng));
+            if let Some(obj_id) = pt.object_id {
+                polyline_object_ids.push(obj_id);
+            } else {
+                polyline_object_ids.push(0); // или None, если нужно, но для JS проще 0
+            }
+        }
+    }
+    let bounds = if !polyline_coords.is_empty() {
+        let (min_lat, max_lat) = polyline_coords.iter().map(|(lat, _)| *lat).fold((f64::MAX, f64::MIN), |(min, max), v| (min.min(v), max.max(v)));
+        let (min_lng, max_lng) = polyline_coords.iter().map(|(_, lng)| *lng).fold((f64::MAX, f64::MIN), |(min, max), v| (min.min(v), max.max(v)));
+        Some(((min_lat, min_lng), (max_lat, max_lng)))
+    } else {
+        None
+    };
+    // --- конец нового ---
+
     let trip_data = TripTemplateData {
         id: trip.id,
         r_type: trip.r#type.unwrap_or_default(),
@@ -1213,6 +1263,9 @@ async fn get_trip(
         title_text,
         route,
         tlib_url: trip.tlib_url,
+        polyline_coords,
+        bounds,
+        polyline_object_ids,
     };
 
     let regions_for_aside = get_regions_with_count(&pool).await;
@@ -1403,4 +1456,40 @@ async fn about_handler(State(pool): State<PgPool>) -> Html<String> {
 async fn contacts_handler(State(pool): State<PgPool>) -> Html<String> {
     let regions = get_regions_with_count(&pool).await;
     Html(ContactsTemplate { regions }.render().unwrap())
+}
+
+fn build_route_preview(route: &[TripRoute], current_object_id: i32) -> Vec<RoutePointPreview> {
+    let mut result = Vec::with_capacity(route.len());
+    for (i, point) in route.iter().enumerate() {
+        let is_active = point.object_id == Some(current_object_id);
+        let is_near_active =
+            (!is_active && i > 0 && route[i - 1].object_id == Some(current_object_id)) ||
+            (!is_active && i + 1 < route.len() && route[i + 1].object_id == Some(current_object_id));
+        result.push(RoutePointPreview {
+            id: point.object_id.unwrap_or(0),
+            name: point.name.clone(),
+            is_active,
+            is_near_active,
+        });
+    }
+    result
+}
+
+fn format_coord(val: &Option<BigDecimal>) -> Option<String> {
+    val.as_ref().map(|v| format!("{:.5}", v.to_f64().unwrap_or(0.0)))
+}
+
+// --- Фильтр для склонения русских существительных по числу ---
+pub fn pluralize_ru(value: &i64, one: &str, few: &str, many: &str) -> String {
+    let n = *value;
+    let n_mod10 = n % 10;
+    let n_mod100 = n % 100;
+    let form = if n_mod10 == 1 && n_mod100 != 11 {
+        one
+    } else if (2..=4).contains(&n_mod10) && !(12..=14).contains(&n_mod100) {
+        few
+    } else {
+        many
+    };
+    form.to_string()
 } 

@@ -57,9 +57,9 @@
                     <div class="trip__param">
                         <strong>Маршрут:</strong>
                         <div class="trip-path-view"><a href="#"
-                                class="btn btn--xxsmall btn--nopadding tooltip js-trip-path-view tooltipstered tooltip-inited"
+                                class="btn btn--xxsmall btn--nopadding tooltip js-trip-path-view tooltipstered"
                                 data-type="vert">↓</a> <a href="#"
-                                class="btn btn--xxsmall btn--nopadding tooltip js-trip-path-view tooltipstered tooltip-inited active cursor-default"
+                                class="btn btn--xxsmall btn--nopadding tooltip js-trip-path-view tooltipstered active cursor-default"
                                 data-type="horz">→</a></div>
                         <div class="trip__path js-trip-path trip__path--horz">
                             {% for item in trip.route %}
@@ -79,11 +79,11 @@
                                             {% if item.category.is_some() %} ({{ item.category.as_ref().unwrap() }}{% if item.height.is_some() %}, {{ item.height.as_ref().unwrap() }} м{% endif %}){% else if item.height.is_some() %} ({{ item.height.as_ref().unwrap() }} м){% endif %}
                                             {% if item.latitude.is_some() %}
                                             {% if item.longitude.is_some() %}
-                                            <i class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered tooltip-inited"
+                                            <i class="fas fa-map-marker-alt js-sobject-marker tooltip tooltip-notouch tooltipstered"
                                                 data-title="Есть координаты"></i>
                                             {% endif %}
                                             {% endif %}
-                                            <i class="far fa-file-alt tooltip tooltip-notouch tooltipstered tooltip-inited" data-title="{{ item.trip_count.unwrap_or(0) }} отчётов"><sup> {{ item.trip_count.unwrap_or(0) }}</sup></i>
+                                            <i class="far fa-file-alt tooltip tooltip-notouch tooltipstered" data-title="{{ item.trip_count.unwrap_or(0) }} отчётов"><sup> {{ item.trip_count.unwrap_or(0) }}</sup></i>
                                         </span>
                                     </div>
                                 </div>
@@ -114,10 +114,10 @@
                     <div class="trip__sticky js-sticky" data-sticky-top-spacing="60">
                         <div class="map-wrapper map-expanded-container js-sticky-remove">
                             <div class="map map--trip js-map" data-bounds-primary="true"
-                                data-bounds="[[44.683261,79.170169],[44.962001,79.967286]]"
-                                data-polyline="[[44.720556,79.714722],[44.699579,79.737429],[44.684385,79.726257],[44.683261,79.713529],[44.691142,79.705853],[44.699595,79.687818],[44.716181,79.661783],[44.712534,79.647641],[44.719739,79.638894],[44.721694,79.65875],[44.726667,79.664167],[44.722424,79.664027],[44.720556,79.714722],[44.778819,79.885456],[44.774708,79.939153],[44.784606,79.966436],[44.770254,79.967286],[44.759719,79.959639],[44.962001,79.170169],[44.88205,79.316108]]"
+                                data-bounds="{% if trip.bounds.is_some() %}[[{{ trip.bounds.as_ref().unwrap().0.0 }},{{ trip.bounds.as_ref().unwrap().0.1 }}],[{{ trip.bounds.as_ref().unwrap().1.0 }},{{ trip.bounds.as_ref().unwrap().1.1 }}]]{% else %}[]{% endif %}"
+                                data-polyline="[{% for (lat, lng) in trip.polyline_coords %}[{{ lat }},{{ lng }}]{% if !loop.last %},{% endif %}{% endfor %}]"
                                 data-polyline-arrow="true" data-polyline-number="true"
-                                data-options="{&quot;active_object_class&quot;:&quot;pin-active&quot;,&quot;active_object_ids&quot;:[1128,1103,19405,1331,1073,19585,1399,19369,1024,1069,1183,20436,1062,19718,967,19932,1116,20147,1367]}">
+                                data-options="{&quot;active_object_class&quot;:&quot;pin-active&quot;,&quot;active_object_ids&quot;:[{% for id in trip.polyline_object_ids %}{{ id }}{% if !loop.last %},{% endif %}{% endfor %}]}">
                             </div>
                         </div>
                         <div class="map"></div>
@@ -156,7 +156,7 @@
 <div class="footer footer--absolute touch-focused disable-prevent-link-clicks">
     <div class="copyright">
         <a href="https://vk.com/pereval.online" target="_blank"
-            class="social-icon social-icon--vk tooltip tooltipstered tooltip-inited"><i class="fab fa-vk"></i></a> ©
+            class="social-icon social-icon--vk tooltip tooltipstered"><i class="fab fa-vk"></i></a> ©
         2025 Перевал.Online. Просим указывать ссылку на <a
             href="https://pereval.online/">pereval.online</a> при
         использовании материалов сайта.
